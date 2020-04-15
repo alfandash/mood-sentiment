@@ -1,0 +1,118 @@
+---
+title: "test"
+author: "Alfan"
+date: "4/13/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+require("httr")
+require("jsonlite")
+require("stringi")
+require("spotifyr")
+require("tidyverse")
+```
+
+
+```{r}
+id <- "d6e8fbb83d7a4948a13a3f3f1962ae29"
+secret <- "4bfd5b59bab3454f8e6510e2e9dc5d6a"
+
+base <- "https://api.spotify.com/v1/"
+```
+
+
+```{r}
+# Get Token 
+token <- get_spotify_access_token(client_id = id,
+  client_secret = secret)
+token
+```
+
+
+```{r}
+genreEndpoint <- "recommendations/available-genre-seeds"
+
+callGenre <- paste(base,genreEndpoint, sep = "")
+```
+
+
+```{r}
+getGenre <- GET(callGenre, add_headers(
+  response_type = "code",
+  Authorization = paste("Bearer ",token, sep = "")))
+
+getGenre
+```
+
+```{r}
+genre_text <- content(getGenre, "text")
+get_genre <- fromJSON(genre_text, flatten = TRUE)
+get_genre_df <- as.data.frame(get_genre)
+get_genre_df
+```
+
+
+```{r}
+recommendationsTracksEndPoint <- "recommendations?limit=100&market=ID&seed_genres="
+
+callTracksByGenre <- paste(base,recommendationsTracksEndPoint, "acoustic", sep = "")
+
+total = 100
+
+# getTracksByGenre <- GET(callTracksByGenre,
+#                         add_headers(
+#                           Authorization = paste("Bearer ",token, sep = "")
+#                         ))
+# tracksText <- content(getTracksByGenre, "text")
+# tracksJson <- fromJSON(tracksText)
+# tracksAll <- tracksJson$tracks
+# tracksDf <- as.data.frame(tracksJson)
+# tracksDfAll <- tracksDf
+
+pages <- list()
+
+for (i in 0:1000) {
+  print(i)
+  getTracksByGenre <- GET(callTracksByGenre,
+                        add_headers(
+                          Authorization = paste("Bearer ",token, sep = "")
+                        ))
+  tracksText <- content(getTracksByGenre, "text")
+  tracksJson <- fromJSON(tracksText, flatten = TRUE)
+  pages[[i+1]] <- tracksJson$tracks
+  
+}
+# 
+# tracksDf <- as.data.frame(tracksJson)
+pages <- rbind_pages(pages)
+pages
+
+
+```
+```{r}
+pages[1,1]
+```
+
+
+```{r}
+# authorize = "https://accounts.spotify.com/authorize"
+# scopes = URLencode("user-read-private user-read-email")
+# redirect_uri = URLencode("https://example.com/callback/")
+# 
+# authUrl <- paste(authorize,"?",
+#                "client_id=", id,
+#                "&response_type=code",
+#                "&redirect_uri=", redirect_uri,
+#                "&scope=", scopes,sep="")
+# 
+# getAuth <- GET(authUrl)
+# getAuth
+```
+
+
+

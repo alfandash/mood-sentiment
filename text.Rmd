@@ -1,0 +1,132 @@
+---
+title: "text-cleansing"
+author: "Alfan"
+date: "4/15/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+```{r}
+library(textclean)
+library(katadasaR)
+library(tokenizers)
+library(wordcloud)
+library(dplyr)
+
+#get twitter package
+library(twitteR)
+```
+
+```{r}
+consumer_key="5GX7jrakMkxGVsg8A8zB8ba3w"
+consumer_secret = "CwGCpz3ZgIZZ4yv2jtrQFGS8MtkxSnn4uFApXxdT8lZkY9iu10"
+
+access_token = "79164479-D2ur2V1hYyyxIKoDF4iTkRSt0GgfBN5oc4XfJhkZp"
+access_token_secret = "o4ehfye46ex6HabRZ1u856fQThdsECNz5cN8bbFZVDCFR"
+
+setup_twitter_oauth(consumer_key,consumer_secret,access_token,access_token_secret)
+```
+
+
+```{r}
+search_word <- "curhat"
+
+twit_list <- searchTwitter(search_word, n = 100, lang = "id")
+```
+
+
+```{r}
+extractTwitToDf <- function(list){
+  if (length(list) == 0) {
+    stop("list is empty")
+  }
+  classes <- unique(sapply(list, class))
+  if (length(classes) != 1) {
+    stop("list isnt unique")
+  }
+  if (!classes %in% c("status")) {
+    stop("Elements not supporter")
+  }
+  
+  do.call("rbind", lapply(list, as.data.frame))
+}
+
+
+```
+
+```{r}
+twit_df <- extractTwitToDf(twit_list)
+
+if (file.exists(paste0("./data/",search_word,".csv")) == FALSE) {
+  write.csv(twit_df, file=paste0("./data/",search_word,".csv"), row.names = F)
+}
+```
+
+```{r}
+all_twit_df <- read.csv(paste0("./data/",search_word,".csv"))
+all_twit_df <- rbind(all_twit_df, twit_df)
+all_twit_df <- subset(all_twit_df, !duplicated(all_twit_df$text))
+
+write.csv(all_twit_df, file=paste0("./data/",search_word,".csv"), row.names = F)
+```
+
+```{r}
+all_twit_df <- all_twit_df %>% 
+  select(text, screenName) %>% 
+  mutate_all(as.character)
+
+str(all_twit_df)
+```
+
+```{r}
+all_twit_df$text <- gsub("\n"," ",all_twit_df$text )
+
+all_twit_df <- all_twit_df %>% 
+  mutate(text = replace_emoji(text)) %>%  # replace emoji with blank
+  mutate(text = replace_html(text)) %>%  # replace html with blank 
+  mutate(text = replace_url(text)) %>%  # replace urls with blank
+  mutate(text = replace_tag(text, pattern="@([A-Za-z0-9_]+)", replacement="")) %>%  # replace tag
+  mutate(text = replace_hash(text, pattern = "#([A-Za-z0-9_]+)", replacement = "")) # replace hashtag
+```
+
+```{r}
+spell_slang_lex <- read.csv("data/colloquial-indonesian-lexicon.csv")
+
+all_twit_df <- all_twit_df %>% 
+  mutate(text = replace_internet_slang(text, 
+                         slang = paste0("\\b", spell_slang_lex$slang, "\\b"),
+                         replacement = spell_slang_lex$formal,
+                         ignore.case = TRUE)) %>% # replace some slang word with formal words
+  mutate(text = gsub("RT : +","", text)) %>% 
+  mutate(text = strip(text)) %>% 
+  distinct()
+```
+
+```{r}
+stemming <- function(x){
+  paste(lapply(x,katadasar),collapse = " ")}
+
+all_twit_df$text <- lapply(tokenize_words(all_twit_df$text), stemming)
+
+```
+
+```{r}
+stop_words <- readLines("data/stopword_list.txt")
+
+all_twit_df <- all_twit_df %>%
+  mutate(text = tokenize_words(text, stopwords = stop_words))
+
+head(all_twit_df$text)
+```
+
+```{r}
+wordcloud(as.character(all_twit_df$text))
+```
+
+
