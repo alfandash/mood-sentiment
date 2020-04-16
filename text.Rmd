@@ -18,6 +18,8 @@ library(katadasaR)
 library(tokenizers)
 library(wordcloud)
 library(dplyr)
+library(tidytext)
+library(tidyverse)
 
 #get twitter package
 library(twitteR)
@@ -35,9 +37,9 @@ setup_twitter_oauth(consumer_key,consumer_secret,access_token,access_token_secre
 
 
 ```{r}
-search_word <- "curhat"
+search_word <- "#dirumahaja"
 
-twit_list <- searchTwitter(search_word, n = 100, lang = "id")
+twit_list <- searchTwitter(search_word, n = 500, lang = "id")
 ```
 
 
@@ -125,8 +127,66 @@ all_twit_df <- all_twit_df %>%
 head(all_twit_df$text)
 ```
 
-```{r}
+```{r warning=FALSE}
 wordcloud(as.character(all_twit_df$text))
 ```
+
+```{r}
+positive <- readLines("data/ID-OpinionWords-master/positive.txt")
+negative <- readLines("data/ID-OpinionWords-master/negative.txt")
+
+pos_reshape <- gather(as.data.frame(positive), "sentiment", "word")
+neg_reshape <- gather(as.data.frame(negative), "sentiment", "word")
+
+id_sentiment <- rbind(pos_reshape, neg_reshape)
+
+```
+
+```{r}
+unnest(all_twit_df, text)
+```
+
+
+```{r}
+
+
+score_sentiment <- function(sentences, pos = positive, neg = negative)
+ {
+  sentences <- unlist(sentences)
+  pos_match <- match(sentences, pos)
+  pos_match <- !is.na(pos_match)
+  
+  neg_match <- match(sentences, neg)
+  neg_match <- !is.na(neg_match)
+  score <- sum(pos_match) - sum(neg_match)
+  return(score)
+}
+
+all_twit_df$score <- sapply(all_twit_df$text, score_sentiment)
+```
+
+
+```{r}
+all_twit_df <- all_twit_df %>% 
+  mutate(sentiment = ifelse(score > 0, "positive", ifelse(score < 0, "negative", "neutral")))
+```
+
+```{r}
+all_twit_df %>% 
+  filter(sentiment == "positive") %>% 
+  select(text) %>% 
+  unnest() %>% 
+  count(text, sort = TRUE)
+```
+
+
+```{r}
+all_twit_df %>% 
+  filter(sentiment == "negative") %>% 
+  select(text) %>% 
+  unnest() %>% 
+  count(text, sort = TRUE)
+```
+
 
 
