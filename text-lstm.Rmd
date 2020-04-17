@@ -1,0 +1,337 @@
+---
+title: "text-cleansing"
+author: "Alfan"
+date: "4/17/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(textclean)
+library(katadasaR)
+library(tokenizers)
+library(wordcloud)
+library(dplyr)
+library(tidytext)
+library(tidyverse)
+library(RVerbalExpressions)
+
+#get twitter package
+library(twitteR)
+
+library(keras)
+
+library(rsample)
+
+library(yardstick)
+```
+
+```{r}
+twit_df <- read.csv("data/Twitter_Emotion_Dataset.csv")
+```
+
+```{r}
+head(twit_df)
+```
+
+```{r}
+glimpse(twit_df)
+```
+
+```{r}
+twit_df <- twit_df %>% 
+  mutate(tweet = as.character(tweet)) %>% 
+  rename(text = tweet)
+```
+
+```{r}
+glimpse(twit_df)
+```
+
+```{r}
+head(twit_df$text, 30)
+```
+
+```{r}
+question <- rx() %>% 
+  rx_find(value = "?") %>% 
+  rx_one_or_more()
+question
+```
+
+```{r}
+exclamation <- rx() %>% 
+  rx_find(value = "!") %>% 
+  rx_one_or_more()
+exclamation
+```
+```{r}
+punctuation <- rx_punctuation()
+punctuation
+```
+
+```{r}
+number <- rx_digit()
+number
+```
+
+
+```{r}
+twit_df <- twit_df %>% 
+  mutate(text_clean = replace_html(text)) %>% 
+  mutate(text_clean = replace_url(text_clean)) %>% 
+  mutate(text_clean = replace_tag(text_clean, pattern = "@([A-Za-z0-9_]+)", replacement = "")) %>% 
+  mutate(text_clean = replace_hash(text_clean, pattern = "#@([A-Za-z0-9_]+)", replacement = "")) %>% 
+  mutate(text_clean = str_replace_all(text_clean, pattern = question, replacement = " tandatanya")) %>% 
+  mutate(text_clean = str_replace_all(text_clean, pattern = exclamation, replacement = " tandaseru")) %>% 
+  mutate(text_clean = str_replace_all(text_clean, pattern = punctuation, replacement = " ")) %>% 
+  mutate(text_clean = str_remove_all(text_clean, pattern = number)) %>% 
+  mutate(text_clean = gsub("USERNAME|URL", " ",text_clean)) %>% 
+  mutate(text_clean = str_to_lower(text_clean)) %>% 
+  mutate(text_clean = replace_word_elongation(text_clean))
+```
+
+```{r}
+twit_df %>% 
+  select(text, text_clean) %>% 
+  sample_n(20)
+```
+
+
+```{r}
+
+if (file.exists("./data/17april2019.csv") == FALSE) {
+  spell_slang_lex <- read.csv("data/colloquial-indonesian-lexicon.csv")
+  twit_df <- twit_df %>% 
+    mutate(text_clean = replace_internet_slang(text_clean,
+                                         slang = paste0("\\b", spell_slang_lex$slang, "\\b"),
+                                         replacement = spell_slang_lex$formal,
+                                         ignore.case = TRUE)) %>% 
+    mutate(text_clean = strip(text_clean))
+  
+  write.csv(twit_df, file=paste0("./data/17april2019.csv"), row.names = F)
+  
+  head(twit_df$text_clean)
+}
+
+if (file.exists("./data/17april2019.csv") == TRUE) {
+  twit_df <- read.csv("./data/17april2019.csv")
+  
+  twit_df <- twit_df %>% 
+    mutate(text = as.character(text),
+           text_clean = as.character(text_clean))
+}
+
+```
+
+```{r}
+stemming <- function(x){
+  paste(lapply(x,katadasar),collapse = " ")}
+# 
+# twit_df$text_clean <- lapply(tokenize_words(twit_df$text_clean), stemming)
+```
+
+```{r}
+stop_words <- readLines("data/stopword_list.txt")
+
+twit_df <- twit_df %>%
+  mutate(text_clean = tokenize_words(text_clean, stopwords = stop_words))
+```
+
+```{r}
+summary(twit_df$label)
+```
+
+```{r}
+twit_df[1:10,] %>% 
+  mutate(test = sapply(text_clean, toString),
+         test = gsub(",", ' ', test)) %>% 
+  select(test)
+```
+
+
+```{r}
+twit_df_clean <- twit_df %>% 
+  mutate(label_num = factor(label, levels = c("anger", "fear", "sadness", "happy", "love")),
+         label_num = as.numeric(label_num),
+         label_num = label_num-1) %>%
+  mutate(text_clean = sapply(text_clean, toString),
+         text_clean = gsub(",", ' ', text_clean)) %>% 
+  select(text_clean, label_num) %>% 
+  na.omit()
+
+head(twit_df_clean, 10)
+```
+
+
+```{r}
+num_words <- 1024
+
+tokenizer <- text_tokenizer(num_words = num_words,
+                            lower = TRUE) %>% 
+  fit_text_tokenizer(twit_df_clean$text_clean)
+
+paste("number of unique words:", length(tokenizer$word_counts))
+```
+
+```{r}
+set.seed(100)
+initial_train <- initial_split(data = twit_df_clean, prop = 0.8, strata = "label_num")
+
+data_train <- training(initial_train)
+data_test <- training(initial_train)
+
+set.seed(100)
+initial_validation <- initial_split(data = data_test, prop = 0.5, strata = "label_num")
+
+data_validation <- training(initial_validation)
+data_test <- testing(initial_validation)
+```
+
+```{r}
+maxlen <- max(str_count(twit_df_clean$text_clean, "\\w+")) + 1 
+paste("maxiumum length words in data:", maxlen)
+```
+
+```{r}
+data_train_x <- texts_to_sequences(tokenizer, data_train$text_clean) %>% 
+  pad_sequences(maxlen = maxlen)
+data_validation_x <- texts_to_sequences(tokenizer, data_validation$text_clean) %>% 
+  pad_sequences(maxlen = maxlen)
+data_test_x <- texts_to_sequences(tokenizer, data_test$text_clean) %>% 
+  pad_sequences(maxlen = maxlen)
+
+data_train_y <- to_categorical(data_train$label_num, num_classes = 5)
+data_validation_y <- to_categorical(data_validation$label_num, num_classes = 5)
+data_test_y <- to_categorical(data_test$label_num, num_classes = 5)
+```
+
+
+```{r}
+model <- keras_model_sequential()
+
+model %>% 
+  layer_embedding(
+    name = "input",
+    input_dim = num_words,
+    input_length = maxlen,
+    output_dim = 32,
+    embeddings_initializer = initializer_random_uniform(minval = -0.05, maxval = 0.05, seed = 100)
+  ) %>% 
+  layer_dropout(
+    name = "embedding_dropout",
+    rate = 0.5
+  ) %>% 
+  layer_lstm(
+    name = "lstm",
+    units = 256,
+    dropout = 0.2,
+    recurrent_dropout = 0.2,
+    return_sequences = FALSE,
+    recurrent_initializer = initializer_random_uniform(minval = -0.05, maxval = 0.05, seed = 2),
+    kernel_initializer = initializer_random_uniform(minval = -0.05, maxval = 0.05, seed = 2)
+  ) %>% 
+  layer_dense(
+    name = "output",
+    units = 5,
+    activation = "softmax",
+    kernel_initializer = initializer_random_uniform(minval = -0.05, maxval = 0.05, seed = 100)
+  )
+```
+
+```{r}
+# compile the model
+model %>% compile(
+  optimizer = "adam",
+  metrics = "accuracy",
+  loss = "categorical_crossentropy"
+)
+
+# model summary
+summary(model)
+```
+
+```{r}
+
+if(file.exists("./model/model-18042020.h5") == FALSE) {
+  # model fit settings
+  epochs <- 35
+  batch_size <- 512
+  
+  # fit the model
+  history <- model %>% fit(
+    data_train_x, data_train_y,
+    batch_size = batch_size, 
+    epochs = epochs,
+    verbose = 1,
+    callbacks = callback_tensorboard("logs/run_a"),
+    validation_data = list(
+      data_validation_x, data_validation_y
+    )
+  )
+  
+  
+  #save model
+  model %>% save_model_hdf5("./model/model-18042020.h5")
+  
+  #save model weight 
+  model %>% save_model_weights_hdf5("./model/model-weight-18042020.ckpt")
+  
+  # Save an object to a file
+  saveRDS(history, file = "./model/history-model-18042020.rds")
+  
+  history_df <- as.data.frame(history)
+  
+  # Save an object to a file
+  saveRDS(history_df, file = "./model/history-df-model-18042020.rds")
+}
+
+if(file.exists("./model/model-18042020.h5") == TRUE) {
+  #save model
+  model <- load_model_hdf5("./model/model-18042020.h5")
+  
+   # Save an object to a file
+  history <- readRDS(file = "./model/history-model-18042020.rds")
+  
+  # Save an object to a file
+  history_df <- readRDS(file = "./model/history-df-model-18042020.rds")
+}
+
+# history plot
+plot(history)
+```
+
+
+```{r}
+data_train_pred <- model %>% 
+  predict_classes(data_train_x) %>% 
+  as.vector()
+
+data_validation_pred <- model %>% 
+  predict_classes(data_validation_x) %>% 
+  as.vector()
+
+data_test_pred <- model %>% 
+  predict_classes(data_test_x) %>% 
+  as.vector()
+```
+
+```{r}
+
+accuracy_vec(
+  truth = factor(data_train$label_num, labels = c("anger", "fear", "sadness", "happy", "love")),
+  estimate = factor(data_train_pred, labels = c("anger", "fear", "sadness", "happy", "love"))
+)
+```
+
+```{r}
+accuracy_vec(
+  truth = factor(data_test$label_num, labels = c("anger", "fear", "sadness", "happy", "love")),
+  estimate = factor(data_test_pred, labels = c("anger", "fear", "sadness", "happy", "love"))
+)
+```
+
+
