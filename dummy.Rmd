@@ -1,0 +1,46 @@
+---
+title: "dummy"
+author: "Alfan"
+date: "4/25/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(plotly)
+library(glue)
+```
+
+
+```{r}
+
+city <- c("Istanbul","Mumbai","Tokyo","Manila","Taipei","Buenos Aires","Soul","Jakarta")
+level <- c(8,5,5,5,4,4,3,3)
+
+stress_level <- data.frame(city,level)
+
+data <- stress_level
+plot <- data %>%
+  ggplot(aes(reorder(city, level), level)) +
+  geom_col(aes(fill = level, text = glue("City: {city}
+                                         Stress Level: {level}"))) +
+  scale_fill_gradient(low= "lightblue",
+                      high= "red") +
+  coord_flip() +
+  theme_minimal() +
+  theme(
+    legend.position = "none"
+  ) +
+  labs(
+    y = "Stress Level",
+    x = ""
+  )
+
+plotly <- ggplotly(plot, tooltip = "text")
+plotly
+```
+

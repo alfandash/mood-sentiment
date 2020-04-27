@@ -1,0 +1,373 @@
+---
+title: "song-modelling"
+author: "Alfan"
+date: "4/21/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+require("httr")
+require("jsonlite")
+require("stringi")
+require("spotifyr")
+require("tidyverse")
+
+require("scales")
+library(FactoMineR)
+library(factoextra)
+library(class)
+library(caret)
+
+library(rsample)
+
+library(e1071)
+library(caret)
+```
+
+```{r}
+wss <- function(data, maxCluster = 9) {
+    # Initialize within sum of squares
+    SSw <- (nrow(data) - 1) * sum(apply(data, 2, var))
+    SSw <- vector()
+    set.seed(100)
+    for (i in 2:maxCluster) {
+        SSw[i] <- sum(kmeans(data, centers = i)$withinss)
+    }
+    plot(1:maxCluster, SSw, type = "o", xlab = "Number of Clusters", ylab = "Within groups sum of squares", pch=19)
+}
+```
+
+
+```{r}
+tracks_df <- read.csv("./data/spotify/spotify-all-genre-recommendations-list.csv")
+```
+
+```{r}
+track_audio_feature_df <- read.csv("./data/spotify/spotify-audiofeature-list.csv")
+```
+
+
+```{r}
+head(tracks_df)
+```
+
+```{r}
+head(track_audio_feature_df)
+```
+
+```{r}
+library(corrplot)
+
+corrplot(cor(track_audio_feature_df%>% select_if(is.numeric)), method = "circle")
+```
+
+
+
+```{r}
+str(track_audio_feature_df)
+```
+
+```{r}
+track_audio_feature_clean <- track_audio_feature_df %>% 
+  select(-c("analysis_url", "key", "mode", "type", "uri", "analysis_url", "duration_ms", "time_signature"))
+```
+
+
+```{r}
+str(track_audio_feature_clean)
+```
+
+
+normilize tempo and loudness
+
+```{r}
+track_audio_feature_num <- track_audio_feature_clean %>% select_if(is.numeric)
+
+track_audio_feature_scale <- track_audio_feature_num %>% mutate(loudness = rescale(loudness),
+                                                                tempo = rescale(tempo))
+
+# track_audio_feature_scale <- scale(track_audio_feature_num)
+
+head(track_audio_feature_scale)
+```
+
+```{r}
+wss(track_audio_feature_scale)
+```
+
+```{r}
+RNGkind(sample.kind = "Rounding")
+set.seed(100)
+audio_feature_km <- kmeans(track_audio_feature_scale, centers = 5, nstart = 20)
+track_audio_feature_scale$cluster <- as.factor(audio_feature_km$cluster)
+```
+
+```{r}
+fviz_cluster(audio_feature_km, 
+             geom = c("point"),
+             data = track_audio_feature_num,
+             ggtheme = theme_minimal())
+```
+
+
+```{r}
+audio_feature_pca <- PCA(track_audio_feature_scale,
+                         scale.unit = T,
+                         graph = F,
+                         quali.sup = 10,
+                         ncp = 10)
+```
+
+
+
+```{r}
+plot.PCA(audio_feature_pca, cex=0.6, choix = c("var"))
+```
+
+```{r}
+plot.PCA(audio_feature_pca, cex=0.1, habillage = 10)
+```
+
+```{r}
+track_audio_feature_df$cluster <- as.factor(audio_feature_km$cluster)
+```
+
+```{r}
+all_track_feature_df <- merge(tracks_df,track_audio_feature_df, by = "id")
+
+head(all_track_feature_df)
+```
+
+
+```{r}
+all_track_clean_df <- all_track_feature_df %>% 
+  select(c("artist.name","name","album.name.1","popularity", "danceability", "energy", "loudness", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo", "cluster", "genre"))
+```
+
+
+```{r}
+all_track_clean_df %>% 
+  group_by(cluster) %>% 
+  summarize(
+    valence.median = median(valence),
+    energy.median = median(energy),
+    danceability.median = median(danceability),
+    loudness.median = median(loudness),
+    acousticness.median = median(acousticness),
+    instrumentalnesss.median = median(instrumentalness),
+    speechiness.median = median(speechiness)
+    )
+```
+
+- valence : A measure from 0.0 to 1.0 describing the musical positiveness conveyed by a track. Tracks with high valence sound more positive (e.g. happy, cheerful, euphoric), while tracks with low valence sound more negative (e.g. sad, depressed, angry). 
+- energy : 	Energy is a measure from 0.0 to 1.0 and represents a perceptual measure of intensity and activity. Typically, energetic tracks feel fast, loud, and noisy. For example, death metal has high energy, while a Bach prelude scores low on the scale. Perceptual features contributing to this attribute include dynamic range, perceived loudness, timbre, onset rate, and general entropy. 
+- danceability : 	Danceability describes how suitable a track is for dancing based on a combination of musical elements including tempo, rhythm stability, beat strength, and overall regularity.
+- loudness: 	The overall loudness of a track in decibels (dB). Loudness values are averaged across the entire track and are useful for comparing relative loudness of tracks. Loudness is the quality of a sound that is the primary psychological correlate of physical strength (amplitude). 
+- acousticness: A confidence measure from 0.0 to 1.0 of whether the track is acoustic. 1.0 represents high confidence the track is acoustic.
+- instrumentalness: 	Predicts whether a track contains no vocals. “Ooh” and “aah” sounds are treated as instrumental in this context. Rap or spoken word tracks are clearly “vocal”. The closer the instrumentalness value is to 1.0, the greater likelihood the track contains no vocal content.
+- speechiness: 	Speechiness detects the presence of spoken words in a track. The more exclusively speech-like the recording (e.g. talk show, audio book, poetry), the closer to 1.0 the attribute value. Values above 0.66 describe tracks that are probably made entirely of spoken words. Values between 0.33 and 0.66 describe tracks that may contain both music and speech, either in sections or layered, including such cases as rap music. Values below 0.33 most likely represent music and other non-speech-like tracks. 
+
+1. : High accousticness, danceability, Mid valence, energy, Low instrumentalness, speechness -> Love mood
+2. : High Energy, Mid Danceability and Valence,  Low Acousticness and instrumentalness -> Joy mood
+3: : Mid Valence, High Energy Dancebility instrumentalness, Low Acousticness -> Mood Swing booster can make good mood to bad mood 
+4. : High acousticness instrumentalness, Low Valence Energy danceability speechiness -> Accoustic classical Song / Negative Song / chill
+5. : High danceability valence energy speachness, low acousticness instrumentalness -> Energetic Mood / Positive Dance Song / popular dance song 
+
+```{r}
+all_track_clean_df %>% 
+  filter(cluster == 5) %>% 
+  head(.,50) %>% 
+  arrange(desc(popularity))
+```
+
+```{r}
+all_track_clean_df %>% 
+  filter(cluster == 5 & genre == "pop") %>% 
+  head(.,20) %>% 
+  arrange(desc(popularity))
+```
+
+```{r}
+all_track_clean_df %>% 
+  filter(cluster == 2) %>% 
+  head(.,20) %>% 
+  arrange(desc(popularity))
+```
+
+
+```{r}
+all_track_clean_df %>% 
+  filter(cluster == 2 & genre == "pop") %>% 
+  head(.,20) %>% 
+  arrange(desc(popularity))
+```
+
+
+```{r}
+all_track_clean_df %>% 
+  filter(cluster == 3) %>% 
+  head(.,20) %>% 
+  arrange(desc(popularity))
+```
+
+```{r}
+all_track_clean_df %>% 
+  filter(cluster == 4) %>% 
+  head(.,20) %>% 
+  arrange(desc(popularity))
+```
+
+```{r}
+all_track_clean_df %>% 
+  filter(cluster == 5 & genre == "pop") %>% 
+  head(.,20) %>% 
+  
+  arrange(desc(popularity))
+```
+
+```{r}
+track_df <- all_track_clean_df %>% 
+  select(4:14)
+```
+
+```{r}
+table(is.na(track_df))
+```
+
+```{r}
+matrix_result <- function(matrix, model_name) {
+  matrix_1 <- as.data.frame(t(as.matrix(matrix, what = "overall")))
+  matrix_2 <- as.data.frame(t(as.matrix(matrix, what = "classes")))
+  Model <- c(model_name)
+  matrix_result <- cbind(Model, matrix_1, matrix_2)
+  matrix_result <- matrix_result %>% select(Model, Accuracy, Sensitivity, Specificity, "Pos Pred Value")
+  return(matrix_result)
+}
+```
+
+
+```{r}
+set.seed(100)
+initial_train <- initial_split(data = track_df, prop = 0.8, strata = "cluster")
+
+data_train <- training(initial_train)
+data_test <- testing(initial_train)
+```
+
+```{r}
+prop.table(table(data_train$cluster))
+```
+
+
+```{r}
+data_train_x <- data_train[,-11]
+data_train_x <- scale(data_train_x, center = T)
+data_test_x <- data_test[,-11]
+data_test_x <- scale(data_test_x, center = T)
+
+data_train_y <- data_train$cluster
+data_test_y <- data_test$cluster
+```
+
+```{r}
+pred_knn <- knn(train = data_train_x,
+                test = data_test_x,
+                cl = data_train_y,
+                k = round(sqrt(nrow(data_train_x))))
+
+matrix_knn <- confusionMatrix(as.factor(pred_knn), as.factor(data_test_y), positive = "1")
+result_knn <- as.data.frame(matrix_knn$table)
+```
+
+```{r}
+result_knn %>% ggplot(aes(x = Prediction, y = Reference, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = Freq), fontface = "bold", color = "white") +
+  theme_bw()
+```
+
+```{r}
+accuracy_knn <-  as.data.frame(t(as.matrix(matrix_knn, what = "overall"))) %>% 
+  mutate(Model = 'KNN') %>% 
+  select(Model, Accuracy)
+
+accuracy_knn
+```
+
+
+```{r}
+model_naivebayes <- naiveBayes(formula = cluster~., data = data_train, laplace = 1)
+pred_naive_bayes <- predict(model_naivebayes, data_test)
+
+matrix_naivebayes <- confusionMatrix(as.factor(pred_naive_bayes), as.factor(data_test_y), positive = "1")
+result_naivebayes <- as.data.frame(matrix_naivebayes$table)
+```
+
+```{r}
+result_naivebayes %>% ggplot(aes(x = Prediction, y = Reference, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = Freq), fontface = "bold", color = "white") +
+  theme_bw()
+```
+
+```{r}
+accuracy_naivebayes <-  as.data.frame(t(as.matrix(matrix_naivebayes, what = "overall"))) %>% 
+  mutate(Model = 'Naive Bayes') %>% 
+  select(Model, Accuracy)
+
+accuracy_naivebayes
+```
+
+
+```{r}
+if(file.exists("./model/random_forest.rds") == FALSE) {
+  ctrl <- trainControl(method = "cv", number = 5, repeats = 3)
+  model_random_forest <- train(cluster ~ ., data = data_train, method = "rf", trControl = ctrl)
+  saveRDS(model_random_forest, file = "./model/random_forest.rds")
+}
+
+model_random_forest <- readRDS("./model/random_forest.rds")
+
+```
+
+```{r}
+pred_random_forest <- predict(model_random_forest, data_test)
+
+matrix_random_forest <- confusionMatrix(as.factor(pred_random_forest), as.factor(data_test_y), positive = "1")
+result_random_forest <- as.data.frame(matrix_random_forest$table)
+```
+
+```{r}
+result_random_forest %>% ggplot(aes(x = Prediction, y = Reference, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = Freq), fontface = "bold", color = "white") +
+  theme_bw()
+```
+
+```{r}
+accuracy_random_forest <-  as.data.frame(t(as.matrix(matrix_random_forest, what = "overall"))) %>% 
+  mutate(Model = 'Random Foest') %>% 
+  select(Model, Accuracy)
+
+accuracy_random_forest
+```
+
+
+```{r}
+rbind(
+  accuracy_knn,
+  accuracy_naivebayes,
+  accuracy_random_forest
+)
+```
+
+
+```{r}
+c("idm","grindcore","tango","")
+```
+

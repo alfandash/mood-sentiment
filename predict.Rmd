@@ -1,0 +1,323 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(textclean)
+library(katadasaR)
+library(tokenizers)
+library(wordcloud)
+library(dplyr)
+library(tidytext)
+library(tidyverse)
+library(RVerbalExpressions)
+
+#get twitter package
+library(twitteR)
+
+library(keras)
+
+library(rsample)
+
+library(yardstick)
+
+require("httr")
+require("jsonlite")
+require("stringi")
+require("spotifyr")
+require("tidyverse")
+```
+
+```{r}
+text = c("Sedang sedih dan ingin pulang kampung", "DUH!!! sakit Kepala Sedih sekalih", "aku bahagia sekali mitra olahraga")
+label = c("")
+
+real_twit = as.data.frame(cbind(text, label))
+
+real_twit <- real_twit %>% mutate(
+  text = as.character(text)
+)
+
+real_twit
+```
+
+```{r}
+question <- rx() %>% 
+  rx_find(value = "?") %>% 
+  rx_one_or_more()
+
+exclamation <- rx() %>% 
+  rx_find(value = "!") %>% 
+  rx_one_or_more()
+
+punctuation <- rx_punctuation()
+
+number <- rx_digit()
+
+stop_words <- readLines("data/stopword_list.txt")
+```
+
+```{r}
+real_twit <- real_twit %>% 
+  mutate(text_clean = replace_html(text)) %>% 
+  mutate(text_clean = replace_url(text_clean)) %>% 
+  mutate(text_clean = replace_tag(text_clean, pattern = "@([A-Za-z0-9_]+)", replacement = "")) %>% 
+  mutate(text_clean = replace_hash(text_clean, pattern = "#@([A-Za-z0-9_]+)", replacement = "")) %>% 
+  mutate(text_clean = str_replace_all(text_clean, pattern = question, replacement = " tandatanya")) %>% 
+  mutate(text_clean = str_replace_all(text_clean, pattern = exclamation, replacement = " tandaseru")) %>% 
+  mutate(text_clean = str_replace_all(text_clean, pattern = punctuation, replacement = " ")) %>% 
+  mutate(text_clean = str_remove_all(text_clean, pattern = number)) %>% 
+  mutate(text_clean = gsub("USERNAME|URL", " ",text_clean)) %>% 
+  mutate(text_clean = str_to_lower(text_clean)) %>% 
+  mutate(text_clean = replace_word_elongation(text_clean)) %>% 
+  mutate(text_clean = tokenize_words(text_clean, stopwords = stop_words)) %>% 
+  mutate(text_clean = sapply(text_clean, toString),
+         text_clean = gsub(",", ' ', text_clean)) %>% 
+  select(text_clean) %>% 
+  na.omit()
+
+real_twit
+```
+
+```{r}
+num_words <- 1024 
+maxlen <- 49
+
+tokenizer <- text_tokenizer(num_words = num_words,
+                            lower = TRUE) %>% 
+  fit_text_tokenizer(real_twit$text_clean)
+
+data_real <- texts_to_sequences(tokenizer, real_twit$text_clean) %>% 
+  pad_sequences(maxlen = maxlen)
+```
+
+
+```{r}
+if(file.exists("./model/model-18042020.h5") == TRUE) {
+  #save model
+  model <- load_model_hdf5("./model/model-18042020.h5")
+  
+   # Save an object to a file
+  history <- readRDS(file = "./model/history-model-18042020.rds")
+  
+  # Save an object to a file
+  history_df <- readRDS(file = "./model/history-df-model-18042020.rds")
+}
+```
+
+
+```{r}
+real_pred <- model %>% 
+  predict_classes(data_real) %>% 
+  as.vector()
+
+convert_label <- function(x) {
+  if(x==0) {return("anger")}
+  if(x==1) {return("fear")}
+  if(x==2) {return("sadness")}
+  if(x==3) {return("happy")}
+  if(x==4) {return("love")}
+}
+
+emotion_label <- sapply(real_pred, convert_label)
+
+real_twit <- real_twit %>% mutate(emotion = emotion_label, label = real_pred)
+
+real_twit
+```
+
+
+```{r}
+genre_df <- read.csv("./data/spotify/genre-list.csv")
+```
+
+```{r}
+id <- "d6e8fbb83d7a4948a13a3f3f1962ae29"
+secret <- "4bfd5b59bab3454f8e6510e2e9dc5d6a"
+
+base <- "https://api.spotify.com/v1/"
+
+# Get Token 
+token <- get_spotify_access_token(client_id = id,
+  client_secret = secret)
+
+
+```
+
+
+```{r}
+
+genre = "pop"
+limit = "100"
+market = "ID"
+
+recommendationsTracksEndPoint <- paste0("recommendations?limit=",
+                                        limit,"&market="
+                                        ,market,"&seed_genres="
+                                        ,genre)
+
+callTracksByGenre <- paste0(base,recommendationsTracksEndPoint)
+pages <- list()
+
+
+for (i in 0:10) {
+  getTracksByGenre <- GET(callTracksByGenre,
+                          add_headers(
+                            Authorization = paste("Bearer ",token, sep = "")
+                          ))
+  tracksText <- content(getTracksByGenre, "text")
+  tracksJson <- fromJSON(tracksText, flatten = TRUE)
+  pages[[i+1]] <- tracksJson$tracks
+}
+
+pages <- rbind_pages(pages)
+pages <- pages %>% select(1:29)
+pages <- pages %>%
+  mutate(genre = genre)
+
+
+tracks_df <- pages
+```
+
+```{r}
+glimpse(tracks_df)
+```
+
+```{r}
+artists <- tracks_df[,1][[1]][1,]
+
+for (row in 2:nrow(tracks_df)) {
+  artists <- rbind(artists, tracks_df[,1][[row]][1,])
+}
+
+artists <- artists %>% 
+  rename_all(funs(paste0("artist.",.)))
+
+
+album <- tracks_df[,16][[1]][1,]
+
+for (row in 2:nrow(tracks_df)) {
+  album <- rbind(album, tracks_df[,16][[row]][1,])
+}
+
+album <- album %>% 
+  rename_all(funs(paste0("album.",.)))
+
+
+album.img <- tracks_df[,19][[1]][1,]
+
+for (row in 2:nrow(tracks_df)) {
+  img <- tracks_df[,19][[row]][1,]
+  if(is.null(img$url)) {
+    img = c(height = NA, url = NA, width = NA)
+  }
+  album.img <- rbind(album.img, img)
+}
+
+album.img <- album.img %>% 
+  rename_all(funs(paste0("album.img.",.)))
+
+tracks_df <- tracks_df %>% 
+  select(-c("artists","album.artists","album.images","album.href", "album.id", "album.name", "album.type", "album.uri", "album.external_urls.spotify"))
+
+tracks_df <- cbind(tracks_df, artists, album, album.img)
+```
+
+
+
+
+```{r}
+id = tracks_df[,"id"]
+
+ids_df = as.data.frame(id)
+
+#code for crawling recomenddation
+rep <- round(nrow(ids_df) / 30)
+
+df_audio_feature <- data.frame()
+
+audioFeatureEndPoint <- paste0("audio-features/?ids=")
+
+for (row in 1:rep) {
+  ids_list <- ids_df[,1]
+
+  ids <- head(ids_list, 30)
+  ids <- paste(ids, collapse =",")
+  
+  ids_df <- ids_df %>%
+    slice(-(1:30))
+  print(nrow(ids_df))
+  
+  callaudioFeature <- paste0(base,audioFeatureEndPoint,ids)
+  getAudioFeatures <- GET(callaudioFeature,
+                          add_headers(
+                            Authorization = paste("Bearer ",token, sep = "")
+                            ))
+  tracksText <- content(getAudioFeatures, "text")
+  tracksJson <- fromJSON(tracksText, flatten = TRUE)
+  df_audio_feature <- rbind(df_audio_feature, tracksJson$audio_features)
+}
+
+track_audio_feature_clean <- df_audio_feature %>% 
+  select(-c("analysis_url", "key", "mode", "type", "uri", "analysis_url", "duration_ms", "time_signature"))
+```
+
+
+```{r}
+all_track_feature_df <- merge(tracks_df,df_audio_feature, by = "id")
+all_track_clean_df <- all_track_feature_df %>% 
+  select(c("artist.name","name","album.name","popularity", "danceability", "energy", "loudness", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo", "genre"))
+```
+
+```{r}
+track_test <- all_track_clean_df %>% 
+  select(4:14)
+```
+
+
+```{r}
+model_random_forest <- readRDS("./model/random_forest.rds")
+
+cluster <- predict(model_random_forest, track_test)
+
+all_track_feature_df <- cbind(all_track_feature_df,as.data.frame(cluster))
+```
+
+
+
+```{r}
+x = real_twit[1,]$label
+
+if (x == 0) {
+  recomend_track <- all_track_feature_df %>% 
+    filter(cluster == 4 | cluster == 5)
+}
+
+if (x == 1) {
+  recomend_track <- all_track_feature_df %>% 
+    filter(cluster == 4 | cluster == 3)
+}
+
+if (x == 2) {
+  recomend_track <- all_track_feature_df %>% 
+    filter(cluster == 2 | cluster == 3)
+}
+
+if (x == 3) {
+  recomend_track <- all_track_feature_df %>% 
+    filter(cluster == 2 | cluster == 5)
+}
+
+if (x == 4) {
+  recomend_track <- all_track_feature_df %>% 
+    filter(cluster == 4 | cluster == 5)
+}
+
+recomend_track <- recomend_track %>% 
+  sample_n(30) %>% 
+  arrange(desc(popularity))
+```
+
+

@@ -14,6 +14,7 @@ library(textclean)
 library(katadasaR)
 library(tokenizers)
 library(wordcloud)
+library(wordcloud2)
 library(dplyr)
 library(tidytext)
 library(tidyverse)
@@ -32,6 +33,35 @@ library(yardstick)
 ```{r}
 twit_df <- read.csv("data/Twitter_Emotion_Dataset.csv")
 ```
+
+```{r}
+twit_label_df <- twit_df %>% 
+  group_by(label) %>% 
+  summarise(freq = n()) %>% 
+  arrange(desc(freq))
+
+twit_label_df %>%
+  ggplot(aes(x = reorder(label, freq), y = freq, fill = freq)) +
+  geom_bar(stat = "identity", color = "black") +
+  theme_minimal() 
+```
+
+
+```{r}
+summary(twit_df$label)
+```
+
+
+Anger
+4 & 5
+Fear
+4 &
+Happy 
+2 & 3
+Love 
+2 & 5
+Sadness
+4 & 5
 
 ```{r}
 head(twit_df)
@@ -68,6 +98,7 @@ exclamation <- rx() %>%
   rx_one_or_more()
 exclamation
 ```
+
 ```{r}
 punctuation <- rx_punctuation()
 punctuation
@@ -103,7 +134,7 @@ twit_df %>%
 
 ```{r}
 
-if (file.exists("./data/17april2019.csv") == FALSE) {
+if (file.exists("data/17april2019.csv") == FALSE) {
   spell_slang_lex <- read.csv("data/colloquial-indonesian-lexicon.csv")
   twit_df <- twit_df %>% 
     mutate(text_clean = replace_internet_slang(text_clean,
@@ -117,7 +148,7 @@ if (file.exists("./data/17april2019.csv") == FALSE) {
   head(twit_df$text_clean)
 }
 
-if (file.exists("./data/17april2019.csv") == TRUE) {
+if (file.exists("data/17april2019.csv") == TRUE) {
   twit_df <- read.csv("./data/17april2019.csv")
   
   twit_df <- twit_df %>% 
@@ -141,6 +172,7 @@ twit_df <- twit_df %>%
   mutate(text_clean = tokenize_words(text_clean, stopwords = stop_words))
 ```
 
+
 ```{r}
 summary(twit_df$label)
 ```
@@ -151,6 +183,8 @@ twit_df[1:10,] %>%
          test = gsub(",", ' ', test)) %>% 
   select(test)
 ```
+
+
 
 
 ```{r}

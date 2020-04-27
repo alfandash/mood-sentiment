@@ -222,6 +222,6 @@ for (row in 1:rep) {
 ```
 
 ```{r}
-write.csv(df_audio_feature, file=paste0("./data/spotify/spotify-audiofeature-list.csv"), row.names = F)
+# write.csv(df_audio_feature, file=paste0("./data/spotify/spotify-audiofeature-list.csv"), row.names = F)
 ```
 
