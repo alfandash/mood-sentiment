@@ -220,6 +220,22 @@ shinyServer(function(input, output) {
         
         plotly <- ggplotly(plot, tooltip = "text")
     })
+    
+    output$distributionPopularityByGenre <- renderPlot({
+        data <- all_track_feature_df %>%
+            filter(genre == input$selectGenre) 
+        
+        data %>% 
+            ggplot(aes(x = popularity, fill = genre)) +
+            geom_density(alpha=0.8) +
+            geom_vline(aes(xintercept = mean(popularity), color = genre), linetype = "dashed") +
+            scale_color_manual(values = c("#868686FF")) +
+            scale_fill_manual(values = c("#5cc763")) +
+            theme_minimal() +
+            theme(
+                legend.position = "none"
+            ) 
+    })
 })
 
 

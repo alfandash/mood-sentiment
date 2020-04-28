@@ -38,7 +38,21 @@ spotify_eda <- fluidRow(
       plotlyOutput(outputId = "topAveragePopularity")
       ),
   box(width = 6,
-      plotlyOutput(outputId = "topArtistAlbumPopularity"))
+      plotlyOutput(outputId = "topArtistAlbumPopularity")
+      ),
+  box(width = 12,
+      box(width = 2,
+          selectInput(
+            inputId = "selectGenre",
+            label = "Select Genre",
+            choices = list("Pop" = "pop",
+                           "Rock" = "rock")
+          )
+      ),
+  ),
+  box(width = 6,
+      plotOutput(outputId = "distributionPopularityByGenre")
+      )
 )
 
 
