@@ -1,33 +1,51 @@
 twitter_eda <- fluidRow(
-  box(width = 12,
-      box(width = 6, 
-          plotlyOutput(outputId = "plotSummaryLabel")
-          ),
-      box(width = 6,
-          plotOutput(outputId = "twitWordCloud")
-          )
-      ),
-  box(width = 12,
-      box(title = "Twitter Mood", width = 4, solidHeader = TRUE, status = "primary",
-          checkboxGroupInput(
-            inputId = "checkMood",
-            label = "Select",
-            choices = list("Anger" = "anger",
-                           "Anger" = "anger",
-                           "Anger" = "anger",
-                           "Anger" = "anger")
-          )
-      ),
-      box(title = "", width = 8, solidHeader = TRUE,
-      )
+  box(width = 6, 
+      plotlyOutput(outputId = "plotSummaryLabel")
   ),
+  box(width = 6,
+      plotOutput(outputId = "twitWordCloud")
+  ),
+  box(width = 12,
+      box(width = 12,
+          box(width = 2,
+              selectInput(
+                inputId = "selectMood",
+                label = "Select Mood",
+                choices = list("Anger" = "anger",
+                               "Sadness" = "sadness",
+                               "Fear" = "fear",
+                               "Happy" = "happy",
+                               "love" = "love")
+              )
+          ),
+          ),
+      box(width = 8,
+          plotlyOutput(outputId = "plotFreqWordByMood")
+          ),
+      valueBoxOutput(outputId = "totalCharByMood"),
+      valueBoxOutput(outputId = "uniqueWordByMood"),
+      valueBoxOutput(outputId = "maxWordByMood"),
+  ),
+)
+
+spotify_eda <- fluidRow(
+  box(width = 12,
+      valueBoxOutput(outputId = "totalGenre"),
+      valueBoxOutput(outputId = "totalTracks"),
+      valueBoxOutput(outputId = "totalArtists"),
+      ),
+  box(width = 6,
+      plotlyOutput(outputId = "topAveragePopularity")
+      ),
+  box(width = 6,
+      plotlyOutput(outputId = "topArtistAlbumPopularity"))
 )
 
 
 eda_body <- fluidRow(
   tabBox(width = 12,
     tabPanel("Twitter", twitter_eda),
-    tabPanel("Spotify")
+    tabPanel("Spotify", spotify_eda)
   )
 )
 
@@ -68,8 +86,14 @@ about <- tabPanel("About",icon = icon("info"),
 navbar <- navbarPage("Human Trafficking", theme = shinytheme("flatly"),
                      eda,
                      about, 
-                     home
+                     home,
+                     tags$head(tags$style(HTML('.box{
+                                               -webkit-box-shadow: none; -moz-box-shadow: none;box-shadow: none;
+                                               border-top: none;
+                                               }'))),
+                     header = tagList(
+                       useShinydashboard()
+                     )
 )
-
 
 shinyUI(navbar)

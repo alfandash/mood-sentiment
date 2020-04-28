@@ -78,6 +78,148 @@ shinyServer(function(input, output) {
         
     })
     
+    output$plotFreqWordByMood <- renderPlotly({
+        
+        twit = twit_tokenize %>% filter(label == input$selectMood)
+        
+        char <- unlist(twit$text_clean)
+        char <- data.frame(char)
+        
+        char <- char %>% 
+            group_by(char) %>% 
+            summarise(freq = n()) %>% 
+            arrange(desc(freq))
+        
+        head(char, 25) %>% 
+            ggplot(aes(x = reorder(char, freq), y = freq, fill = freq)) +
+            geom_col() +
+            scale_fill_gradient(low = "lightblue",
+                                high = "navy") +
+            theme_minimal() +
+            theme(
+                legend.position = "none"
+            ) +
+            labs(
+                y = "",
+                x = "",
+                title = paste0("Most Common Character Twit with Label ",input$selectMood)
+            )
+    })
+    
+    output$totalCharByMood <- renderValueBox({
+        twit = twit_tokenize %>% filter(label == input$selectMood)
+        
+        data <- length(unlist(twit$text_clean))
+
+        valueBox(
+            data, "Total All Word", icon = icon("flag"),
+            color = "blue"
+        )
+    })
+    
+    output$maxWordByMood <- renderValueBox({
+        data <- max(lengths(gregexpr("\\W+", twit_df$text)) + 1)
+        
+        valueBox(
+            data, "Max Word Twit", icon = icon("flag"),
+            color = "green"
+        )
+    })
+    
+    output$uniqueWordByMood <- renderValueBox({
+        twit = twit_tokenize %>% filter(label == input$selectMood)
+        
+        data <- length(unique(unlist(twit$text_clean)))
+        
+        valueBox(
+            data, "Unique Word", icon = icon("flag"),
+            color = "red"
+        )
+    })
+    
+    
+    # Eda Spotify Section
+    
+    output$totalGenre <- renderValueBox({
+        data <- length(unique(all_track_feature_df$genre))
+        
+        valueBox(
+            data, "Total Genre", icon = icon("flag"),
+            color = "green"
+        )
+    })
+    
+    output$totalTracks <- renderValueBox({
+        data <- length(unique(all_track_feature_df$id))
+        
+        valueBox(
+            data, "Total Tracks", icon = icon("flag"),
+            color = "blue"
+        )
+    })
+    
+    output$totalArtists <- renderValueBox({
+        data <- length(unique(all_track_feature_df$artist.name))
+        
+        valueBox(
+            data, "Total Artists", icon = icon("flag"),
+            color = "yellow"
+        )
+    })
+    
+    output$topAveragePopularity <- renderPlotly({
+        data <- all_track_feature_df %>% 
+            group_by(genre) %>% 
+            summarise(popularity = mean(popularity)) %>% 
+            arrange(desc(popularity)) %>% 
+            head(20)
+        
+        plot <- data %>%
+            ggplot(aes(reorder(genre, popularity), popularity)) +
+            geom_col(aes(fill = popularity, text = glue("Genre: {genre}
+                                         Average: {popularity}"))) +
+            scale_fill_gradient(low= "lightblue",
+                                high= "navy") +
+            coord_flip() +
+            theme_minimal() +
+            theme(
+                legend.position = "none"
+            ) +
+            labs(
+                y = "Average popularity",
+                x = "",
+                title = "Top 20 Highest Popular Genre"
+            )
+        
+        plotly <- ggplotly(plot, tooltip = "text")
+    })
+    
+    output$topArtistAlbumPopularity <- renderPlotly({
+        data <- all_track_feature_df %>% 
+            group_by(artist.name,album.name) %>% 
+            summarise(popularity = mean(popularity)) %>% 
+            arrange(desc(popularity)) %>% 
+            head(20)
+        
+        plot <- data %>%
+            ggplot(aes(reorder(album.name, popularity), popularity)) +
+            geom_col(aes(fill = popularity, text = glue("Artists: {artist.name}
+                                         Average: {popularity}"))) +
+            scale_fill_gradient(low= "Green",
+                                high= "navy") +
+            coord_flip() +
+            theme_minimal() +
+            theme(
+                legend.position = "none"
+            ) +
+            labs(
+                y = "Average popularity",
+                x = "",
+                title = "Top 20 Highest Popular Album"
+            )
+        
+        plotly <- ggplotly(plot, tooltip = "text")
+    })
 })
 
 
