@@ -7,7 +7,7 @@ library(shinyWidgets)
 
 # Wrangling and Plotting Package
 library(tidyverse)
-
+library(scales)
 library(tokenizers)
 
 #Visualization
@@ -15,6 +15,9 @@ library(plotly)
 library(glue)
 library(wordcloud)
 library(RColorBrewer)
+library(fmsb)
+
+library(FactoMineR)
 
 test <- "halo string"
 
@@ -53,11 +56,18 @@ twit_df_clean <- twit_df %>%
 
 # Spotfy EDA
 
-tracks_df <- read.csv("./data/spotify/spotify-all-genre-recommendations-list.csv")
-
+tracks_df <- read.csv("./data/spotify/spotify-all-genre-recommendations-list-cluster.csv")
 track_audio_feature_df <- read.csv("./data/spotify/spotify-audiofeature-list.csv")
+genre_df <- read.csv("./data/spotify/genre-list.csv")
 
 track_audio_feature_clean <- track_audio_feature_df %>% 
   select(-c("analysis_url", "key", "mode", "type", "uri", "analysis_url", "time_signature"))
 
 all_track_feature_df <- merge(tracks_df,track_audio_feature_clean, by = "id")
+
+
+# Spotify Clustering
+
+track_audio_feature_num <- track_audio_feature_clean %>% select_if(is.numeric)
+track_audio_feature_scale <- track_audio_feature_num %>% mutate(loudness = rescale(loudness),
+                                                                tempo = rescale(tempo))

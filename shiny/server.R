@@ -178,8 +178,8 @@ shinyServer(function(input, output) {
             ggplot(aes(reorder(genre, popularity), popularity)) +
             geom_col(aes(fill = popularity, text = glue("Genre: {genre}
                                          Average: {popularity}"))) +
-            scale_fill_gradient(low= "lightblue",
-                                high= "navy") +
+            scale_fill_gradient(low= "#C0FFB3",
+                                high= "#2C7873") +
             coord_flip() +
             theme_minimal() +
             theme(
@@ -205,8 +205,8 @@ shinyServer(function(input, output) {
             ggplot(aes(reorder(album.name, popularity), popularity)) +
             geom_col(aes(fill = popularity, text = glue("Artists: {artist.name}
                                          Average: {popularity}"))) +
-            scale_fill_gradient(low= "Green",
-                                high= "navy") +
+            scale_fill_gradient(low= "#C0FFB3",
+                                high= "#2C7873") +
             coord_flip() +
             theme_minimal() +
             theme(
@@ -230,12 +230,169 @@ shinyServer(function(input, output) {
             geom_density(alpha=0.8) +
             geom_vline(aes(xintercept = mean(popularity), color = genre), linetype = "dashed") +
             scale_color_manual(values = c("#868686FF")) +
-            scale_fill_manual(values = c("#5cc763")) +
+            scale_fill_manual(values = c("#ffba5a")) +
             theme_minimal() +
             theme(
                 legend.position = "none"
             ) 
     })
+    
+    output$radarAudioFeatureByGenre <- renderPlotly({
+        data <- all_track_feature_df %>% 
+            filter(genre == input$selectGenre) %>% 
+            select(c("danceability", "energy", "loudness", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo")) %>% 
+            mutate(loudness = rescale(loudness),
+                   tempo = rescale(tempo)) %>% 
+            summarise_all(median)
+        
+        theta <- c("danceability", "energy", "loudness", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo")
+        r <- as.numeric(data[1,])
+        
+        plot_ly(type = "scatterpolar", 
+                r = r,
+                theta = theta,
+                fill = "toself",
+                fillcolor = 'rgba(255,186,90,0.8)',
+                line = list(color = "#629d66"),
+                marker = list(size = 10, color = "#2c7873")
+                ) %>% 
+            layout(
+                title = paste0("Audio Feature Characteristic"),
+                polar = list(
+                    radialaxis = list(
+                        visible = T,
+                        range = c(0,1)
+                    )
+                )
+            )
+    })
+    
+    # Song Cluster Section
+    
+    radarAudioFeatureCluster <- function(x) {
+        data <- all_track_feature_df %>% 
+            filter(cluster == x) %>% 
+            select(c("valence", "energy", "danceability", "loudness", "acousticness", "instrumentalness", "speechiness")) %>% 
+            mutate(loudness = rescale(loudness)) %>% 
+            summarise_all(median)
+        
+        theta <- c("valence", "energy", "danceability", "loudness", "acousticness", "instrumentalness", "speechiness")
+        r <- as.numeric(data[1,])
+        
+        plotly <- plot_ly(type = "scatterpolar", 
+                r = r,
+                theta = theta,
+                fill = "toself") %>% 
+            layout(
+                polar = list(
+                    radialaxis = list(
+                        visible = T,
+                        range = c(0,1)
+                    )
+                )
+            )
+        return(plotly)
+    }
+    
+    plotAudioFeatureClusterGenre <- function(x) {
+        data <- all_track_feature_df %>% 
+            filter(cluster == x ) %>% 
+            group_by(genre) %>% 
+            summarise(freq = n()) %>% 
+            arrange(desc(freq)) %>% 
+            head(10)
+        
+        plot <- data %>%
+            ggplot(aes(reorder(genre, freq), freq)) +
+            geom_col(aes(fill = freq, text = glue("Genre: {genre}
+                                         Frequency: {freq}"))) +
+            scale_fill_gradient(low= "#C0FFB3",
+                                high= "#2C7873") +
+            coord_flip() +
+            theme_minimal() +
+            theme(
+                legend.position = "none"
+            ) +
+            labs(
+                y = "",
+                x = "",
+                title = ""
+            )
+        
+        return(ggplotly(plot, tooltip = "text"))
+    }
+    
+    tableArtistTitleCluster <- function(x) {
+        data <- all_track_feature_df %>% 
+            filter(cluster == x) %>% 
+            select(c("artist.name","name")) %>% 
+            mutate("track_artist" = paste0(artist.name," - ", name)) %>% 
+            select(track_artist) %>% 
+            sample_n(10) %>% 
+            rename(" " = track_artist)
+        
+        return(data)
+    }
+    
+    output$radarAudioFeatureCluster1 <- renderPlotly({
+        radarAudioFeatureCluster(1)
+    })
+    
+    output$radarAudioFeatureCluster2 <- renderPlotly({
+        radarAudioFeatureCluster(2)
+    })
+    
+    output$radarAudioFeatureCluster3 <- renderPlotly({
+        radarAudioFeatureCluster(3)
+    })
+    
+    output$radarAudioFeatureCluster4 <- renderPlotly({
+        radarAudioFeatureCluster(4)
+    })
+    
+    output$radarAudioFeatureCluster5 <- renderPlotly({
+        radarAudioFeatureCluster(5)
+    })
+    
+    output$plotAudioFeaturClusterGenre1 <- renderPlotly({
+        plotAudioFeatureClusterGenre(1)
+    })
+    
+    output$plotAudioFeaturClusterGenre2 <- renderPlotly({
+        plotAudioFeatureClusterGenre(2)
+    })
+    
+    output$plotAudioFeaturClusterGenre3 <- renderPlotly({
+        plotAudioFeatureClusterGenre(3)
+    })
+    
+    output$plotAudioFeaturClusterGenre4 <- renderPlotly({
+        plotAudioFeatureClusterGenre(4)
+    })
+    
+    output$plotAudioFeaturClusterGenre5 <- renderPlotly({
+        plotAudioFeatureClusterGenre(5)
+    })
+    
+    output$tableArtistTitleGenre1 <- renderTable(
+        tableArtistTitleCluster(1)
+    )
+    
+    output$tableArtistTitleGenre2 <- renderTable(
+        tableArtistTitleCluster(2)
+    )
+    
+    output$tableArtistTitleGenre3 <- renderTable(
+        tableArtistTitleCluster(3)
+    )
+    
+    output$tableArtistTitleGenre4 <- renderTable(
+        tableArtistTitleCluster(4)
+    )
+    
+    output$tableArtistTitleGenre5 <- renderTable(
+        tableArtistTitleCluster(5)
+    )
 })
 
 

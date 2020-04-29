@@ -45,26 +45,110 @@ spotify_eda <- fluidRow(
           selectInput(
             inputId = "selectGenre",
             label = "Select Genre",
-            choices = list("Pop" = "pop",
-                           "Rock" = "rock")
+            choices = genre_df$genre
           )
       ),
   ),
   box(width = 6,
       plotOutput(outputId = "distributionPopularityByGenre")
-      )
+      ),
+  box(width = 6,
+      plotlyOutput(outputId = "radarAudioFeatureByGenre")
+  )
 )
 
 
 eda_body <- fluidRow(
   tabBox(width = 12,
-    tabPanel("Twitter", twitter_eda),
-    tabPanel("Spotify", spotify_eda)
+         tabPanel("Spotify", spotify_eda),
+         tabPanel("Twitter", twitter_eda)
   )
 )
 
 eda <- tabPanel("Data Exploration",icon = icon("compass"),
                   eda_body
+)
+
+cluster_body <- fluidRow(class="text-justify",
+                         box(width = 12,
+                             h3("Cluster 1: Love Mood")
+                             ),
+                         box(width = 12,
+                             box(width = 4,
+                                 plotlyOutput(outputId = "radarAudioFeatureCluster1")
+                                 ),
+                             box(width = 4,
+                                 plotlyOutput(outputId = "plotAudioFeaturClusterGenre1")
+                                 ),
+                             box(width = 4,
+                                 h4("Song With Characteristics"),
+                                 tableOutput(outputId = "tableArtistTitleGenre1")
+                                 )
+                             ),
+                         box(width = 12,
+                             h3("Cluster 2: Energetic Mood")
+                         ),
+                         box(width = 12,
+                             box(width = 4,
+                                 plotlyOutput(outputId = "radarAudioFeatureCluster2")
+                             ),
+                             box(width = 4,
+                                 plotlyOutput(outputId = "plotAudioFeaturClusterGenre2")
+                             ),
+                             box(width = 4, 
+                                 h4("Song With Characteristics"),
+                                 tableOutput(outputId = "tableArtistTitleGenre2")
+                             )
+                         ),
+                         box(width = 12,
+                             h3("Cluster 3: Swing Mood")
+                         ),
+                         box(width = 12,
+                             box(width = 4,
+                                 plotlyOutput(outputId = "radarAudioFeatureCluster3")
+                             ),
+                             box(width = 4,
+                                 plotlyOutput(outputId = "plotAudioFeaturClusterGenre3")
+                             ),
+                             box(width = 4,
+                                 h4("Song With Characteristics"),
+                                 tableOutput(outputId = "tableArtistTitleGenre3")
+                             )
+                         ),
+                         box(width = 12,
+                             h3("Cluster 4: Chill and Sad Mood")
+                         ),
+                         box(width = 12,
+                             box(width = 4,
+                                 plotlyOutput(outputId = "radarAudioFeatureCluster4")
+                             ),
+                             box(width = 4,
+                                 plotlyOutput(outputId = "plotAudioFeaturClusterGenre4")
+                             ),
+                             box(width = 4,
+                                 h4("Song With Characteristics"),
+                                 tableOutput(outputId = "tableArtistTitleGenre4")
+                             )
+                         ),
+                         box(width = 12,
+                             h3("Cluster 3: Happy & Joy Mood")
+                         ),
+                         box(width = 12,
+                             box(width = 4,
+                                 plotlyOutput(outputId = "radarAudioFeatureCluster5")
+                             ),
+                             box(width = 4,
+                                 h4("Song With Characteristics"),
+                                 plotlyOutput(outputId = "plotAudioFeaturClusterGenre5")
+                             ),
+                             box(width = 4, 
+                                 tableOutput(outputId = "tableArtistTitleGenre5")
+                             )
+                         ),
+)
+
+cluster <- tabPanel("Song Clustering",icon = icon("project-diagram"),
+                    cluster_body
 )
 
 about_body <- fluidRow(class="text-justify",
@@ -85,19 +169,19 @@ about_body <- fluidRow(class="text-justify",
                       )
 )
 
-
-home <- tabPanel("Home",icon = icon("home"),
-                 box(width = 12, align = "center",
-                   imageOutput(outputId = "homeImageLanding")
-                 )
-                 
-)
-
 about <- tabPanel("About",icon = icon("info"),
                   about_body
 )
 
+home <- tabPanel("Home",icon = icon("home"),
+                 box(width = 12, align = "center",
+                     imageOutput(outputId = "homeImageLanding")
+                 )
+                 
+)
+
 navbar <- navbarPage("Human Trafficking", theme = shinytheme("flatly"),
+                     cluster,
                      eda,
                      about, 
                      home,
