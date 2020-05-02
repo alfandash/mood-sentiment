@@ -1,7 +1,7 @@
 shinyServer(function(input, output) {
     output$stressLevel <- renderPlotly({
-        city <- c("Istanbul","Mumbai","Tokyo","Manila","Taipei","Buenos Aires","Soul","Jakarta")
-        level <- c(8,5,5,5,4,4,3,3)
+        city <- c("Tokyo","Soul","Taipei","Manila","Istanbul","Jakarta","Buenos Aires","Mumbai")
+        level <- c(9,7,7,5,5,4,3,2)
         
         stress_level <- data.frame(city,level)
         
@@ -267,6 +267,132 @@ shinyServer(function(input, output) {
             )
     })
     
+    # Modelling Section
+    
+    output$confusionMatrixKnn <- renderPlot ({
+        result_knn %>% ggplot(aes(x = Reference, y = Prediction, fill = Freq)) +
+            geom_tile() +
+            geom_text(aes(label = Freq), fontface = "bold", color = "white") +
+            theme_minimal() +
+            theme(
+                legend.position = "none"
+            ) +
+            labs(
+                title = "KNN"
+            )
+        
+    })
+    
+    output$accuracyKnn <- renderText({
+        data <- round(
+            accuracy_knn[1,2]*100
+            ,2)
+        paste0(data," %")
+        
+    })
+    
+    output$confusionMatrixNaiveBayes <- renderPlot ({
+        result_naivebayes %>% ggplot(aes(x = Reference, y = Prediction, fill = Freq)) +
+            geom_tile() +
+            geom_text(aes(label = Freq), fontface = "bold", color = "white") +
+            theme_minimal() +
+            theme(
+                legend.position = "none"
+            ) +
+            labs(
+                title = "Naive Bayes"
+            )
+        
+    })
+    
+    output$accuracyNaiveBayes <- renderText({
+        data <- round(
+            accuracy_naivebayes[1,2]*100
+            ,2)
+        paste0(data," %")
+        
+    })
+    
+    output$confusionMatrixRandomForest <- renderPlot ({
+        result_random_forest %>% ggplot(aes(x = Reference, y = Prediction, fill = Freq)) +
+            geom_tile() +
+            geom_text(aes(label = Freq), fontface = "bold", color = "white") +
+            theme_minimal() +
+            theme(
+                legend.position = "none"
+            ) +
+            labs(
+                title = "Random Forest"
+            )
+        
+    })
+    
+    output$accuracyRandomForest <- renderText({
+        data <- round(
+            accuracy_random_forest[1,2]*100
+            ,2)
+        paste0(data," %")
+        
+    })
+    
+    output$confusionMatrixNeuralNetworkTrain <- renderPlot ({
+        matrix_lstm <- confusionMatrix(
+            factor(data_train_pred_lstm, labels = c("anger", "fear", "sadness", "happy", "love")),
+            factor(data_train_lstm$label_num, labels = c("anger", "fear", "sadness", "happy", "love"))
+        )
+        
+        result_naivebayes <- as.data.frame(matrix_lstm$table)
+        
+        result_naivebayes %>% ggplot(aes(x = Reference, y = Prediction, fill = Freq)) +
+            geom_tile() +
+            geom_text(aes(label = Freq), fontface = "bold", color = "white") +
+            theme_minimal() +
+            theme(
+                legend.position = "none"
+            )
+        
+    })
+    
+    output$accuracyNeuralNetworkTrain <- renderText({
+        data <- round(
+            accuracy_vec(
+                truth = factor(data_train_lstm$label_num, labels = c("anger", "fear", "sadness", "happy", "love")),
+                estimate = factor(data_train_pred_lstm, labels = c("anger", "fear", "sadness", "happy", "love"))
+            ) * 100
+            ,2)
+        paste0(data," %")
+
+    })
+    
+    output$confusionMatrixNeuralNetworkTest <- renderPlot ({
+        matrix_lstm <- confusionMatrix(
+            factor(data_test_pred_lstm, labels = c("anger", "fear", "sadness", "happy", "love")),
+            factor(data_test_lstm$label_num, labels = c("anger", "fear", "sadness", "happy", "love"))
+        )
+        
+        result_naivebayes <- as.data.frame(matrix_lstm$table)
+        
+        result_naivebayes %>% ggplot(aes(x = Reference, y = Prediction, fill = Freq)) +
+            geom_tile() +
+            geom_text(aes(label = Freq), fontface = "bold", color = "white") +
+            theme_minimal() +
+            theme(
+                legend.position = "none"
+            )
+        
+    })
+    
+    output$accuracyNeuralNetworkTest <- renderText({
+        data <- round(
+            accuracy_vec(
+                truth = factor(data_test_lstm$label_num, labels = c("anger", "fear", "sadness", "happy", "love")),
+                estimate = factor(data_test_pred_lstm, labels = c("anger", "fear", "sadness", "happy", "love"))
+            )* 100
+            ,2)
+        paste0(data," %")
+        
+    })
+    
     # Song Cluster Section
     
     radarAudioFeatureCluster <- function(x) {
@@ -393,6 +519,308 @@ shinyServer(function(input, output) {
     output$tableArtistTitleGenre5 <- renderTable(
         tableArtistTitleCluster(5)
     )
+    
+    #Recommendation Section
+    genreChoice <- reactive({
+        genre_df$genre
+    })
+    
+    validateTwit <- function() {
+        shiny::validate(
+            need(str_length(input$twitInput) >= 10, 'Type Something Dude! At least 10 Character la!'),
+            need(str_length(input$twitInput) <= 220, 'Cant more than 220 Char')
+        )
+    }
+    
+    output$selectGenre <- renderUI({
+        genre <- genreChoice()
+        
+        selectizeInput(
+            inputId = "selectGenreTwit",
+            label = "Select Genre You Like",
+            choices = genre
+        )
+    })
+    
+    output$submitTwitAction <- renderUI({
+        validateTwit()
+        actionButton("submitTwitAction", "Recommend My Playlist")
+    })
+    
+    output$test <- renderText({
+        paste0(input$selectGenreTwit,input$twitInput,input$submitTwitAction)
+    })
+    
+    # init variable here
+    values <- reactiveValues(foo = NULL)
+    values <- reactiveValues(mood_predict = NULL)
+    values <- reactiveValues(label_predict = NULL)
+    values <- reactiveValues(choosen_genre = NULL)
+    
+    output$sentimentTwit <- renderText({
+        if(is.null(input$submitTwitAction) == TRUE)
+            return()
+        
+        if(input$submitTwitAction == 0) 
+            return()
+        
+        text = c(input$twitInput)
+        label = c("")
+        
+        real_twit = as.data.frame(cbind(text, label))
+        real_twit <- real_twit %>% mutate(
+            text = as.character(text)
+        )
+        
+        question <- rx() %>% 
+            rx_find(value = "?") %>% 
+            rx_one_or_more()
+        
+        exclamation <- rx() %>% 
+            rx_find(value = "!") %>% 
+            rx_one_or_more()
+        
+        punctuation <- rx_punctuation()
+        
+        number <- rx_digit()
+        
+        stop_words <- readLines("data/stopword_list.txt")
+        
+        real_twit <- real_twit %>% 
+            mutate(text_clean = replace_html(text)) %>% 
+            mutate(text_clean = replace_url(text_clean)) %>% 
+            mutate(text_clean = replace_tag(text_clean, pattern = "@([A-Za-z0-9_]+)", replacement = "")) %>% 
+            mutate(text_clean = replace_hash(text_clean, pattern = "#@([A-Za-z0-9_]+)", replacement = "")) %>% 
+            mutate(text_clean = str_replace_all(text_clean, pattern = question, replacement = " tandatanya")) %>% 
+            mutate(text_clean = str_replace_all(text_clean, pattern = exclamation, replacement = " tandaseru")) %>% 
+            mutate(text_clean = str_replace_all(text_clean, pattern = punctuation, replacement = " ")) %>% 
+            mutate(text_clean = str_remove_all(text_clean, pattern = number)) %>% 
+            mutate(text_clean = gsub("USERNAME|URL", " ",text_clean)) %>% 
+            mutate(text_clean = str_to_lower(text_clean)) %>% 
+            mutate(text_clean = replace_word_elongation(text_clean)) %>% 
+            mutate(text_clean = tokenize_words(text_clean, stopwords = stop_words)) %>% 
+            mutate(text_clean = sapply(text_clean, toString),
+                   text_clean = gsub(",", ' ', text_clean)) %>% 
+            select(text_clean) %>% 
+            na.omit()
+        
+        num_words <- 1024 
+        maxlen <- 49
+        
+        tokenizer <- text_tokenizer(num_words = num_words,
+                                    lower = TRUE) %>% 
+            fit_text_tokenizer(real_twit$text_clean)
+        
+        data_real <- texts_to_sequences(tokenizer, real_twit$text_clean) %>% 
+            pad_sequences(maxlen = maxlen)
+        
+        model <- load_model_hdf5("./model/model-18042020.h5")
+        
+        real_pred <- model %>% 
+            predict_classes(data_real) %>% 
+            as.vector()
+        
+        convert_label <- function(x) {
+            if(x==0) {return("anger")}
+            if(x==1) {return("fear")}
+            if(x==2) {return("sadness")}
+            if(x==3) {return("happy")}
+            if(x==4) {return("love")}
+        }
+        
+        emotion_label <- sapply(real_pred, convert_label)
+        
+        real_twit <- real_twit %>% mutate(emotion = emotion_label, label = real_pred)
+        
+        values$mood_predict <- real_twit[1,2]
+        values$label_predict <- real_twit[1,3]
+        
+        paste0("Your Predict Mood is ",values$mood_predict)
+    })
+    
+    output$selectedGenre <- renderText({
+        paste0("Recomend playlist with genre ",input$selectGenreTwit)
+    })
+    
+    output$recommendationPlaylistTable <- renderTable({
+        print(paste0("playlist table ",values$mood_predict))
+        if(is.null(input$submitTwitAction) == TRUE)
+            return()
+        
+        if(input$submitTwitAction == 0) 
+            return()
+        
+        if(is.null(values$mood_predict) == TRUE)
+            return()
+        
+        
+        id <- "d6e8fbb83d7a4948a13a3f3f1962ae29"
+        secret <- "4bfd5b59bab3454f8e6510e2e9dc5d6a"
+        
+        base <- "https://api.spotify.com/v1/"
+        
+        # Get Token 
+        token <- get_spotify_access_token(client_id = id,
+                                          client_secret = secret)
+        
+        genre = input$selectGenre
+        limit = "100"
+        market = "ID"
+        
+        recommendationsTracksEndPoint <- paste0("recommendations?limit=",
+                                                limit,"&market="
+                                                ,market,"&seed_genres="
+                                                ,genre)
+        
+        callTracksByGenre <- paste0(base,recommendationsTracksEndPoint)
+        pages <- list()
+        
+        
+        for (i in 0:10) {
+            getTracksByGenre <- GET(callTracksByGenre,
+                                    add_headers(
+                                        Authorization = paste("Bearer ",token, sep = "")
+                                    ))
+            tracksText <- content(getTracksByGenre, "text")
+            tracksJson <- fromJSON(tracksText, flatten = TRUE)
+            pages[[i+1]] <- tracksJson$tracks
+        }
+        
+        pages <- rbind_pages(pages)
+        pages <- pages %>% select(1:29)
+        pages <- pages %>%
+            mutate(genre = genre)
+        
+        tracks_df <- pages
+        
+        artists <- tracks_df[,1][[1]][1,]
+        
+        for (row in 2:nrow(tracks_df)) {
+            artists <- rbind(artists, tracks_df[,1][[row]][1,])
+        }
+        
+        artists <- artists %>% 
+            rename_all(funs(paste0("artist.",.)))
+        
+        
+        album <- tracks_df[,16][[1]][1,]
+        
+        for (row in 2:nrow(tracks_df)) {
+            album <- rbind(album, tracks_df[,16][[row]][1,])
+        }
+        
+        album <- album %>% 
+            rename_all(funs(paste0("album.",.)))
+        
+        
+        album.img <- tracks_df[,19][[1]][1,]
+        
+        for (row in 2:nrow(tracks_df)) {
+            img <- tracks_df[,19][[row]][1,]
+            if(is.null(img$url)) {
+                img = c(height = NA, url = NA, width = NA)
+            }
+            album.img <- rbind(album.img, img)
+        }
+        
+        album.img <- album.img %>% 
+            rename_all(funs(paste0("album.img.",.)))
+        
+        tracks_df <- tracks_df %>% 
+            select(-c("artists","album.artists","album.images","album.href", "album.id", "album.name", "album.type", "album.uri", "album.external_urls.spotify"))
+        
+        tracks_df <- cbind(tracks_df, artists, album, album.img)
+        
+        id = tracks_df[,"id"]
+        
+        ids_df = as.data.frame(id)
+        
+        #code for crawling recomenddation
+        rep <- round(nrow(ids_df) / 30)
+        
+        df_audio_feature <- data.frame()
+        
+        audioFeatureEndPoint <- paste0("audio-features/?ids=")
+        
+        for (row in 1:rep) {
+            ids_list <- ids_df[,1]
+            
+            ids <- head(ids_list, 30)
+            ids <- paste(ids, collapse =",")
+            
+            ids_df <- ids_df %>%
+                slice(-(1:30))
+            print(nrow(ids_df))
+            
+            callaudioFeature <- paste0(base,audioFeatureEndPoint,ids)
+            getAudioFeatures <- GET(callaudioFeature,
+                                    add_headers(
+                                        Authorization = paste("Bearer ",token, sep = "")
+                                    ))
+            tracksText <- content(getAudioFeatures, "text")
+            tracksJson <- fromJSON(tracksText, flatten = TRUE)
+            df_audio_feature <- rbind(df_audio_feature, tracksJson$audio_features)
+        }
+        
+        track_audio_feature_clean <- df_audio_feature %>% 
+            select(-c("analysis_url", "key", "mode", "type", "uri", "analysis_url", "duration_ms", "time_signature"))
+        
+        all_track_feature_df <- merge(tracks_df,df_audio_feature, by = "id")
+        all_track_clean_df <- all_track_feature_df %>% 
+            select(c("artist.name","name","album.name","popularity", "danceability", "energy", "loudness", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo", "genre"))
+        
+        track_test <- all_track_clean_df %>% 
+            select(4:14)
+        
+        model_random_forest <- readRDS("./model/random_forest.rds")
+        
+        cluster <- predict(model_random_forest, track_test)
+        
+        all_track_feature_df <- cbind(all_track_feature_df,as.data.frame(cluster))
+        
+        x = values$label_predict
+        
+        print(paste0("check",values$label_predict))
+        print(x)
+        
+        if (x == 0) {
+            recomend_track <- all_track_feature_df %>% 
+                filter(cluster == 4 | cluster == 5)
+        }
+        
+        if (x == 1) {
+            recomend_track <- all_track_feature_df %>% 
+                filter(cluster == 4 | cluster == 3)
+        }
+        
+        if (x == 2) {
+            recomend_track <- all_track_feature_df %>% 
+                filter(cluster == 2 | cluster == 3)
+        }
+        
+        if (x == 3) {
+            recomend_track <- all_track_feature_df %>% 
+                filter(cluster == 2 | cluster == 5)
+        }
+        
+        if (x == 4) {
+            recomend_track <- all_track_feature_df %>% 
+                filter(cluster == 4 | cluster == 5)
+        }
+        
+        recomend_track <- unique(recomend_track) %>% 
+            sample_n(20) %>% 
+            arrange(desc(popularity))
+            
+        
+        data <- recomend_track %>%
+            select(c("artist.name","name")) %>% 
+            mutate("track_artist" = paste0(artist.name," - ", name)) %>% 
+            select(track_artist) %>% 
+            rename(" " = track_artist)
+        
+        data
+    })
 })
 
 

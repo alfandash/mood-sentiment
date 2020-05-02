@@ -71,7 +71,8 @@ eda <- tabPanel("Data Exploration",icon = icon("compass"),
 
 cluster_body <- fluidRow(class="text-justify",
                          box(width = 12,
-                             h3("Cluster 1: Love Mood")
+                             h3("Cluster 1: Love Mood"),
+                             p("High accousticness, danceability, Mid valence, energy, Low instrumentalness, speechiness")
                              ),
                          box(width = 12,
                              box(width = 4,
@@ -86,7 +87,8 @@ cluster_body <- fluidRow(class="text-justify",
                                  )
                              ),
                          box(width = 12,
-                             h3("Cluster 2: Energetic Mood")
+                             h3("Cluster 2: Energetic Mood"),
+                             p("High Energy, Mid Danceability and Valence, Low Acousticness and Instrumentalness")
                          ),
                          box(width = 12,
                              box(width = 4,
@@ -101,7 +103,8 @@ cluster_body <- fluidRow(class="text-justify",
                              )
                          ),
                          box(width = 12,
-                             h3("Cluster 3: Swing Mood")
+                             h3("Cluster 3: Swing Mood"),
+                             p(" High Energy and Dancebility and Instrumentalness, Mid Valence, Low Acousticness")
                          ),
                          box(width = 12,
                              box(width = 4,
@@ -116,7 +119,8 @@ cluster_body <- fluidRow(class="text-justify",
                              )
                          ),
                          box(width = 12,
-                             h3("Cluster 4: Chill and Sad Mood")
+                             h3("Cluster 4: Chill and Sad Mood"),
+                             p("High acousticness and Instrumentalness, Low Valence and Energy and Danceability Speechiness")
                          ),
                          box(width = 12,
                              box(width = 4,
@@ -131,7 +135,8 @@ cluster_body <- fluidRow(class="text-justify",
                              )
                          ),
                          box(width = 12,
-                             h3("Cluster 3: Happy & Joy Mood")
+                             h3("Cluster 5: Happy & Joy Mood"),
+                             p("High Danceability Valence Energy Speachness, Low Acousticness Instrumentalness")
                          ),
                          box(width = 12,
                              box(width = 4,
@@ -150,6 +155,82 @@ cluster_body <- fluidRow(class="text-justify",
 cluster <- tabPanel("Song Clustering",icon = icon("project-diagram"),
                     cluster_body
 )
+
+modelling_body <- fluidRow(
+  column(width = 12,
+         h2("Spotify Prediction Model"),
+  ),
+  column(width = 12,
+         h3("Result Confusion Matrix"),
+  ),
+  column(width = 4, class="text-center",
+      plotOutput(outputId = "confusionMatrixKnn"),
+      h4("Accuracy"),
+      h4(textOutput(outputId = "accuracyKnn"))
+  ),
+  column(width = 4, class="text-center",
+      plotOutput(outputId = "confusionMatrixNaiveBayes"),
+      h4("Accuracy"),
+      h4(textOutput(outputId = "accuracyNaiveBayes"))
+  ),
+  column(width = 4, class="text-center",
+      plotOutput(outputId = "confusionMatrixRandomForest"),
+      h4("Accuracy"),
+      h4(textOutput(outputId = "accuracyRandomForest"))
+  ),
+  column(width = 12,
+         h2("Twitter Prediction Model"),
+  ),
+  column(width = 12,
+         h3("Result Confusion Matrix"),
+  ),
+  column(width = 6, class="text-center",
+         h3("Prediction With Data Train"),
+         plotOutput(outputId = "confusionMatrixNeuralNetworkTrain"),
+         h4("Accuracy"),
+         h4(textOutput(outputId = "accuracyNeuralNetworkTrain"))
+  ),
+  column(width = 6, class="text-center",
+         h3("Prediction Data Test"),
+         plotOutput(outputId = "confusionMatrixNeuralNetworkTest"),
+         h4("Accuracy"),
+         h4(textOutput(outputId = "accuracyNeuralNetworkTest"))
+  ),
+)
+
+# modelling_body <- fluidRow(
+#   tabBox(width = 12,
+#          tabPanel("Spotify", spotify_modelling),
+#          tabPanel("Twitter", )
+#   )
+# )
+
+modelling <- tabPanel("Modelling", icon = icon("chart-line"),
+                      modelling_body
+                      )
+
+recommendation_body <- fluidRow(
+  box(width = 12,
+      h2("Mood Prediction and Playlist Recommendation"),
+      ),
+  column(width = 3,
+      textInput("twitInput", h3("Your Twit")
+      ),
+      uiOutput(outputId = "selectGenre"),
+      uiOutput(outputId = "submitTwitAction"),
+      textOutput("test"),
+      ),
+  column(width = 5,
+         h2(textOutput("sentimentTwit")),
+         h3(textOutput("selectedGenre")),
+         tableOutput(outputId = "recommendationPlaylistTable")
+      )
+  
+)
+
+recommendation <- tabPanel("Recommendation", icon = icon("chart-line"),
+                          recommendation_body,
+                          )
 
 about_body <- fluidRow(class="text-justify",
                       box(width = 12,
@@ -180,18 +261,27 @@ home <- tabPanel("Home",icon = icon("home"),
                  
 )
 
-navbar <- navbarPage("Human Trafficking", theme = shinytheme("flatly"),
-                     cluster,
-                     eda,
-                     about, 
+
+
+navbar <- navbarPage("Mood Analysis", theme = shinytheme("flatly"),
+                     # modelling,
+                     # cluster,
+                     # eda,
+                     # about,
+                     recommendation,
                      home,
+                     about,
+                     eda,
+                     cluster,
+                     modelling,
                      tags$head(tags$style(HTML('.box{
                                                -webkit-box-shadow: none; -moz-box-shadow: none;box-shadow: none;
                                                border-top: none;
                                                }'))),
                      header = tagList(
                        useShinydashboard()
-                     )
+                     ),
+                     useShinyjs()
 )
 
 shinyUI(navbar)

@@ -1,0 +1,12 @@
+name: Mood_Analysis
+title: Mood_Analysis
+username:
+account: alfandash
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2216119
+bundleId: 3085572
+url: https://alfandash.shinyapps.io/Mood_Analysis/
+when: 1588246503.60397
+asMultiple: FALSE
+asStatic: FALSE
