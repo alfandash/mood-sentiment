@@ -35,6 +35,8 @@ library(RColorBrewer)
 library(fmsb)
 
 library(FactoMineR)
+library(slam)
+library(tm)
 
 test <- "halo string"
 

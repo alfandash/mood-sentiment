@@ -198,13 +198,6 @@ modelling_body <- fluidRow(
   ),
 )
 
-# modelling_body <- fluidRow(
-#   tabBox(width = 12,
-#          tabPanel("Spotify", spotify_modelling),
-#          tabPanel("Twitter", )
-#   )
-# )
-
 modelling <- tabPanel("Modelling", icon = icon("chart-line"),
                       modelling_body
                       )
@@ -217,14 +210,20 @@ recommendation_body <- fluidRow(
       textInput("twitInput", h3("Your Twit")
       ),
       uiOutput(outputId = "selectGenre"),
-      uiOutput(outputId = "submitTwitAction"),
-      textOutput("test"),
+      actionButton("submitTwitAction", "Recommend My Playlist"),
+      # uiOutput(outputId = "submitTwitAction"),
+      # textOutput("test"),
       ),
   column(width = 5,
          h2(textOutput("sentimentTwit")),
          h3(textOutput("selectedGenre")),
          tableOutput(outputId = "recommendationPlaylistTable")
-      )
+         ),
+  column(width = 4,
+         h3(textOutput("radarTitlePrediction")),
+         br(),
+         plotlyOutput(outputId = "radarRecommendPlaylist")
+         )
   
 )
 
@@ -268,12 +267,13 @@ navbar <- navbarPage("Mood Analysis", theme = shinytheme("flatly"),
                      # cluster,
                      # eda,
                      # about,
-                     recommendation,
+                     # recommendation,
                      home,
                      about,
                      eda,
                      cluster,
                      modelling,
+                     recommendation,
                      tags$head(tags$style(HTML('.box{
                                                -webkit-box-shadow: none; -moz-box-shadow: none;box-shadow: none;
                                                border-top: none;

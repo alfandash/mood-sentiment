@@ -532,6 +532,10 @@ shinyServer(function(input, output) {
         )
     }
     
+    output$submitTwitAction <- renderUI({
+        validateTwit()
+    })
+    
     output$selectGenre <- renderUI({
         genre <- genreChoice()
         
@@ -540,11 +544,6 @@ shinyServer(function(input, output) {
             label = "Select Genre You Like",
             choices = genre
         )
-    })
-    
-    output$submitTwitAction <- renderUI({
-        validateTwit()
-        actionButton("submitTwitAction", "Recommend My Playlist")
     })
     
     output$test <- renderText({
@@ -556,13 +555,13 @@ shinyServer(function(input, output) {
     values <- reactiveValues(mood_predict = NULL)
     values <- reactiveValues(label_predict = NULL)
     values <- reactiveValues(choosen_genre = NULL)
+    values <- reactiveValues(recommend_track_all = NULL)
     
-    output$sentimentTwit <- renderText({
-        if(is.null(input$submitTwitAction) == TRUE)
-            return()
-        
-        if(input$submitTwitAction == 0) 
-            return()
+    
+    
+    
+    twit_prediction <- eventReactive(input$submitTwitAction, {
+        print("TRIGGERR model twitter")
         
         text = c(input$twitInput)
         label = c("")
@@ -634,25 +633,25 @@ shinyServer(function(input, output) {
         
         values$mood_predict <- real_twit[1,2]
         values$label_predict <- real_twit[1,3]
+    })
+    
+    output$sentimentTwit <- renderText({
+
+        twit_prediction()
         
         paste0("Your Predict Mood is ",values$mood_predict)
     })
     
-    output$selectedGenre <- renderText({
+    selectedgenre_reactive <- eventReactive(input$submitTwitAction, {
         paste0("Recomend playlist with genre ",input$selectGenreTwit)
     })
     
-    output$recommendationPlaylistTable <- renderTable({
-        print(paste0("playlist table ",values$mood_predict))
-        if(is.null(input$submitTwitAction) == TRUE)
-            return()
-        
-        if(input$submitTwitAction == 0) 
-            return()
-        
-        if(is.null(values$mood_predict) == TRUE)
-            return()
-        
+    output$selectedGenre <- renderText({
+        selectedgenre_reactive()
+    })
+    
+    spotify_prediction <- eventReactive(input$submitTwitAction, {
+        print("TRIGGERR model spotify")
         
         id <- "d6e8fbb83d7a4948a13a3f3f1962ae29"
         secret <- "4bfd5b59bab3454f8e6510e2e9dc5d6a"
@@ -663,10 +662,12 @@ shinyServer(function(input, output) {
         token <- get_spotify_access_token(client_id = id,
                                           client_secret = secret)
         
-        genre = input$selectGenre
+        genre = input$selectGenreTwit
         limit = "100"
         market = "ID"
         
+        print("genre")
+        print(genre)
         recommendationsTracksEndPoint <- paste0("recommendations?limit=",
                                                 limit,"&market="
                                                 ,market,"&seed_genres="
@@ -685,6 +686,7 @@ shinyServer(function(input, output) {
             tracksJson <- fromJSON(tracksText, flatten = TRUE)
             pages[[i+1]] <- tracksJson$tracks
         }
+        
         
         pages <- rbind_pages(pages)
         pages <- pages %>% select(1:29)
@@ -808,18 +810,71 @@ shinyServer(function(input, output) {
                 filter(cluster == 4 | cluster == 5)
         }
         
-        recomend_track <- unique(recomend_track) %>% 
+        values$recommend_track_all <- unique(recomend_track)
+        
+        recomend_track <- values$recommend_track_all %>% 
             sample_n(20) %>% 
             arrange(desc(popularity))
-            
         
         data <- recomend_track %>%
-            select(c("artist.name","name")) %>% 
-            mutate("track_artist" = paste0(artist.name," - ", name)) %>% 
-            select(track_artist) %>% 
-            rename(" " = track_artist)
+            select(c("name","artist.name", "album.name", "popularity")) %>% 
+            rename("Song Name" = name,
+                   "Artis" = artist.name,
+                   "Album" = album.name,
+                   "Popularity" = popularity)
         
         data
+    })
+    
+    output$recommendationPlaylistTable <- renderTable({
+        
+        if(is.null(values$mood_predict) == TRUE)
+            return()
+        
+        spotify_prediction()
+    })
+    
+    radarTitlePrediction_reactive <- eventReactive(input$submitTwitAction, {
+        "Playlist recomendation Characteristic"
+    })
+    
+    output$radarTitlePrediction <- renderText({
+        radarTitlePrediction_reactive()
+    })
+    
+    playlist_table <- eventReactive(input$submitTwitAction, {
+        data <- values$recommend_track_all
+        
+        data <- data %>% 
+            select(c("valence", "energy", "danceability", "loudness", "acousticness", "instrumentalness", "speechiness")) %>% 
+            mutate(loudness = rescale(loudness)) %>% 
+            summarise_all(mean)
+        
+        theta <- c("valence", "energy", "danceability", "loudness", "acousticness", "instrumentalness", "speechiness")
+        r <- as.numeric(data[1,])
+        
+        plotly <- plot_ly(type = "scatterpolar", 
+                          r = r,
+                          theta = theta,
+                          fill = "toself") %>% 
+            layout(
+                polar = list(
+                    radialaxis = list(
+                        visible = T,
+                        range = c(0,1)
+                    )
+                )
+            )
+        plotly
+    })
+    
+    output$radarRecommendPlaylist <- renderPlotly({
+        
+        if(is.null(values$recommend_track_all) == TRUE)
+            return()
+        
+        playlist_table()
+        
     })
 })
 
