@@ -42,7 +42,7 @@ test <- "halo string"
 
 
 #Twitter EDA
-twit_df <- read.csv("./data/17april2019.csv")
+twit_df <- read.csv("./data/04May2020.csv")
 
 twit_df <- twit_df %>% 
   mutate(text = as.character(text),
@@ -175,13 +175,13 @@ tokenizer <- text_tokenizer(num_words = num_words,
 
 
 #save model
-model_lstm <- load_model_hdf5("./model/model-18042020.h5")
+model_lstm <- load_model_hdf5("./model/model-04052020_ver_3.h5")
 
 # Save an object to a file
-history_lstm <- readRDS(file = "./model/history-model-18042020.rds")
+history_lstm <- readRDS(file = "./model/history-model-04052020_ver_3.rds")
 
 # Save an object to a file
-history_df <- readRDS(file = "./model/history-df-model-18042020.rds")
+history_df <- readRDS(file = "./model/history-df-model-04052020_ver_3.rds")
 
 initial_train <- readRDS(file = "./data/initial_train_twitter.rds")
 initial_validation <- readRDS(file = "./data/initial_validation_twitter.rds")

@@ -590,8 +590,8 @@ shinyServer(function(input, output) {
             mutate(text_clean = replace_url(text_clean)) %>% 
             mutate(text_clean = replace_tag(text_clean, pattern = "@([A-Za-z0-9_]+)", replacement = "")) %>% 
             mutate(text_clean = replace_hash(text_clean, pattern = "#@([A-Za-z0-9_]+)", replacement = "")) %>% 
-            mutate(text_clean = str_replace_all(text_clean, pattern = question, replacement = " tandatanya")) %>% 
-            mutate(text_clean = str_replace_all(text_clean, pattern = exclamation, replacement = " tandaseru")) %>% 
+            mutate(text_clean = str_replace_all(text_clean, pattern = question, replacement = "")) %>% 
+            mutate(text_clean = str_replace_all(text_clean, pattern = exclamation, replacement = "")) %>% 
             mutate(text_clean = str_replace_all(text_clean, pattern = punctuation, replacement = " ")) %>% 
             mutate(text_clean = str_remove_all(text_clean, pattern = number)) %>% 
             mutate(text_clean = gsub("USERNAME|URL", " ",text_clean)) %>% 
@@ -613,7 +613,7 @@ shinyServer(function(input, output) {
         data_real <- texts_to_sequences(tokenizer, real_twit$text_clean) %>% 
             pad_sequences(maxlen = maxlen)
         
-        model <- load_model_hdf5("./model/model-18042020.h5")
+        model <- load_model_hdf5("./model/model-04052020_ver_3.h5")
         
         real_pred <- model %>% 
             predict_classes(data_real) %>% 
