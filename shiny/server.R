@@ -682,7 +682,7 @@ shinyServer(function(input, output) {
                                     add_headers(
                                         Authorization = paste("Bearer ",token, sep = "")
                                     ))
-            tracksText <- content(getTracksByGenre, "text")
+            tracksText <- httr::content(getTracksByGenre, "text")
             tracksJson <- fromJSON(tracksText, flatten = TRUE)
             pages[[i+1]] <- tracksJson$tracks
         }
@@ -759,7 +759,7 @@ shinyServer(function(input, output) {
                                     add_headers(
                                         Authorization = paste("Bearer ",token, sep = "")
                                     ))
-            tracksText <- content(getAudioFeatures, "text")
+            tracksText <- httr::content(getAudioFeatures, "text")
             tracksJson <- fromJSON(tracksText, flatten = TRUE)
             df_audio_feature <- rbind(df_audio_feature, tracksJson$audio_features)
         }
