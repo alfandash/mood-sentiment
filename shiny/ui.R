@@ -198,7 +198,7 @@ modelling_body <- fluidRow(
   ),
 )
 
-modelling <- tabPanel("Modelling", icon = icon("chart-line"),
+modelling <- tabPanel("Modelling", icon = icon("robot"),
                       modelling_body
                       )
 
@@ -217,7 +217,7 @@ recommendation_body <- fluidRow(
   column(width = 5,
          h2(textOutput("sentimentTwit")),
          h3(textOutput("selectedGenre")),
-         tableOutput(outputId = "recommendationPlaylistTable")
+         withSpinner(tableOutput(outputId = "recommendationPlaylistTable"))
          ),
   column(width = 4,
          h3(textOutput("radarTitlePrediction")),
@@ -235,18 +235,15 @@ about_body <- fluidRow(class="text-justify",
                       box(width = 12,
                            h2("Background"),
                            ),
-                      box(width = 6, style = "font-size: 150%;",
+                      column(width = 6, style = "font-size: 150%;",
                           htmlOutput("aboutText"),
-                            ),
-                      box(width = 6,
-                          plotlyOutput(outputId = "stressLevel")
-                          ),
-                      box(width = 12,
-                          h2("Flow")
-                          ),
-                      box(width = 12,
+                          h2("Work Flow"),
                           imageOutput(outputId = "aboutImageFlow")
-                      )
+                            ),
+                      column(width = 6,
+                          plotlyOutput(outputId = "stressLevel"),
+                          plotlyOutput(outputId = "socialMediaLevel"),
+                          ),
 )
 
 about <- tabPanel("About",icon = icon("info"),
@@ -262,7 +259,7 @@ home <- tabPanel("Home",icon = icon("home"),
 
 
 
-navbar <- navbarPage("Mood Analysis", theme = shinytheme("flatly"),
+navbar <- navbarPage("Moodify", theme = shinytheme("flatly"),
                      # modelling,
                      # cluster,
                      # eda,

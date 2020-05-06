@@ -16,6 +16,7 @@ library(jsonlite)
 library(stringi)
 library(spotifyr)
 library(httr)
+library(katadasaR)
 
 #modelling package
 library(e1071)
@@ -37,16 +38,17 @@ library(fmsb)
 library(FactoMineR)
 library(slam)
 library(tm)
+library(shinycssloaders)
 
 test <- "halo string"
 
 
 #Twitter EDA
-twit_df <- read.csv("./data/04May2020.csv")
+twit_df <- read.csv("./data/05May2020.csv")
 
 twit_df <- twit_df %>% 
   mutate(text = as.character(text),
-         text_clean = as.character(text_clean))
+         text_token = as.character(text_token))
 
 twit_label_df <- twit_df %>% 
   group_by(label) %>% 
@@ -59,7 +61,7 @@ stemming <- function(x){
 stop_words <- readLines("./data/stopword_list.txt")
 
 twit_df <- twit_df %>%
-  mutate(text_clean = tokenize_words(text_clean, stopwords = stop_words))
+  mutate(text_token = tokenize_words(text_token, stopwords = stop_words))
 
 twit_tokenize <- twit_df
 
@@ -67,9 +69,9 @@ twit_df_clean <- twit_df %>%
   mutate(label_num = factor(label, levels = c("anger", "fear", "sadness", "happy", "love")),
          label_num = as.numeric(label_num),
          label_num = label_num-1) %>%
-  mutate(text_clean = sapply(text_clean, toString),
-         text_clean = gsub(",", ' ', text_clean)) %>% 
-  select(text_clean, label_num) %>% 
+  mutate(text_token = sapply(text_token, toString),
+         text_token = gsub(",", ' ', text_token)) %>% 
+  select(text_token, label_num) %>% 
   na.omit()
 
 
@@ -167,21 +169,22 @@ accuracy_random_forest <-  as.data.frame(t(as.matrix(matrix_random_forest, what 
   select(Model, Accuracy)
 
 # Modelling twit
-num_words <- 1024
-maxlen <- max(str_count(twit_df_clean$text_clean, "\\w+")) + 1 
+num_words <- 16384
+# maxlen <- max(str_count(twit_df_clean$text_token, "\\w+")) + 1 
+maxlen <- 49
 tokenizer <- text_tokenizer(num_words = num_words,
                             lower = TRUE) %>% 
-  fit_text_tokenizer(twit_df_clean$text_clean)
+  fit_text_tokenizer(twit_df_clean$text_token)
 
 
 #save model
-model_lstm <- load_model_hdf5("./model/model-04052020_ver_3.h5")
+model_lstm <- load_model_hdf5("./model/model-05052020_ver_4.h5")
 
 # Save an object to a file
-history_lstm <- readRDS(file = "./model/history-model-04052020_ver_3.rds")
+history_lstm <- readRDS(file = "./model/history-model-05052020_ver_4.rds")
 
 # Save an object to a file
-history_df <- readRDS(file = "./model/history-df-model-04052020_ver_3.rds")
+history_df <- readRDS(file = "./model/history-df-model-05052020_ver_4.rds")
 
 initial_train <- readRDS(file = "./data/initial_train_twitter.rds")
 initial_validation <- readRDS(file = "./data/initial_validation_twitter.rds")
@@ -191,11 +194,11 @@ data_test_lstm <- training(initial_train)
 data_validation_lstm <- training(initial_validation)
 data_test_lstm <- testing(initial_validation)
 
-data_train_lstm_x <- texts_to_sequences(tokenizer, data_train_lstm$text_clean) %>% 
+data_train_lstm_x <- texts_to_sequences(tokenizer, data_train_lstm$text_token) %>% 
   pad_sequences(maxlen = maxlen)
-data_validation_lstm_x <- texts_to_sequences(tokenizer, data_validation_lstm$text_clean) %>% 
+data_validation_lstm_x <- texts_to_sequences(tokenizer, data_validation_lstm$text_token) %>% 
   pad_sequences(maxlen = maxlen)
-data_test_lstm_x <- texts_to_sequences(tokenizer, data_test_lstm$text_clean) %>% 
+data_test_lstm_x <- texts_to_sequences(tokenizer, data_test_lstm$text_token) %>% 
   pad_sequences(maxlen = maxlen)
 
 

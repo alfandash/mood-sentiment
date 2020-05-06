@@ -15,7 +15,8 @@ shinyServer(function(input, output) {
             coord_flip() +
             theme_minimal() +
             theme(
-                legend.position = "none"
+                legend.position = "top",
+                plot.subtitle = element_text()
             ) +
             labs(
                 y = "Stress Level",
@@ -23,14 +24,62 @@ shinyServer(function(input, output) {
                 title = "Highest City Stress Level"
             )
         
-        plotly <- ggplotly(plot, tooltip = "text")
+        plotly <- ggplotly(plot, tooltip = "text") %>% 
+            layout(
+            # legend = list(orientation = "h"),
+            annotations = list(text = 'Source: data.tempo.co/read/594/jakarta-kota-dengan-tingkat-stress-ke-enam-dunia',
+                               font = list(size = 12),
+                               showarrow = FALSE,
+                               xref = 'paper', x = 1,
+                               yref = 'paper', y = 0)
+            )
     })
+    
+    output$socialMediaLevel <- renderPlotly({
+        apps <- c("Youtube", "Whatsapp", "Facebook", "Instagram", "Line", "Twitter", "FB Messenger", "BBM", "Linkedin", "Pinterest", "Skype", "WeChat", "Snapchat", "Path", "Tumblr", "Reddit")
+        level <- c(88,83,81,80,59,52,47,38,33,29,28,28,26,25,20,16)
+        type <- c("Social Nework", "Messenger", "Social Nework", "Social Nework", "Messenger", "Social Nework", "Messenger", "Messenger", "Social Nework", "Social Nework", "Messenger", "Messenger", "Social Nework", "Social Nework", "Social Nework", "Social Nework")
+        
+        social_media_platform <- data.frame(apps,level,type)
+        
+        social_media_platform %>% 
+            mutate(type = as.factor(type))
+        
+        data <- social_media_platform
+        plot <- data %>%
+            ggplot(aes(reorder(apps, level), level)) +
+            geom_col(aes(fill = type, text = glue("Apps: {apps}
+                                                   Percentage: {level} %
+                                                   Type: {type}"))) +
+            # scale_fill_gradient(low= "lightblue",
+            #                     high= "red") +
+            coord_flip() +
+            theme_minimal() +
+            theme(
+                legend.position = "bottom"
+            ) +
+            labs(
+                y = "Percentage Level (%)",
+                x = "",
+                title = "Most Active Social Media Platforms"
+            )
+        
+        plotly <- ggplotly(plot, tooltip = "text") %>% 
+            layout(
+                annotations = list(text = 'Source: Hootsuite We are Social Indonesian Digital Report 2019',
+                                   font = list(size = 12),
+                                   showarrow = FALSE,
+                                   xref = 'paper', x = 1,
+                                   yref = 'paper', y = 0)
+            )
+    })
+    
     output$homeImageLanding <- renderImage({
         test
         return(list(
             src = "images/home-1.png",
             contentType = "image/png",
-            height = "850"
+            height = "130%"
         ))
     }, deleteFile = FALSE)
     
@@ -39,7 +88,7 @@ shinyServer(function(input, output) {
         return(list(
             src = "images/flow-1.png",
             contentType = "image/png",
-            height = "80%"
+            width = "100%"
         ))
     }, deleteFile = FALSE)
     
@@ -60,10 +109,21 @@ shinyServer(function(input, output) {
     # Eda twitter Section
     
     output$plotSummaryLabel <- renderPlotly({
-        twit_label_df %>%
+        plot <- twit_label_df %>%
             ggplot(aes(x = reorder(label, freq), y = freq, fill = freq)) +
-            geom_bar(stat = "identity", color = "black") +
-            theme_minimal() 
+            geom_bar(stat = "identity", color = "black", aes(text=glue("Label = {label}
+                                                                       Frequency = {freq}"))) +
+            theme_minimal()  +
+            theme(
+                legend.position = "none"
+            ) +
+            labs(
+                y = "Frequency",
+                x = "",
+                title = "Frequency Twitter Data Label"
+            )
+        
+        ggplotly(plot, tooltip = "text")
     })
     
     output$twitWordCloud <- renderPlot({
@@ -82,7 +142,7 @@ shinyServer(function(input, output) {
         
         twit = twit_tokenize %>% filter(label == input$selectMood)
         
-        char <- unlist(twit$text_clean)
+        char <- unlist(twit$text_token)
         char <- data.frame(char)
         
         char <- char %>% 
@@ -90,26 +150,30 @@ shinyServer(function(input, output) {
             summarise(freq = n()) %>% 
             arrange(desc(freq))
         
-        head(char, 25) %>% 
+        plot <- head(char, 25) %>% 
             ggplot(aes(x = reorder(char, freq), y = freq, fill = freq)) +
-            geom_col() +
+            geom_col(aes(text=glue("Character = {char},
+                                    Frequency = {freq}"))) +
             scale_fill_gradient(low = "lightblue",
                                 high = "navy") +
             theme_minimal() +
             theme(
-                legend.position = "none"
+                legend.position = "none",
+                axis.text.x = element_text(angle = 45)
             ) +
             labs(
-                y = "",
+                y = "Frequency",
                 x = "",
                 title = paste0("Most Common Character Twit with Label ",input$selectMood)
             )
+        
+        ggplotly(plot, tooltip = "text")
     })
     
     output$totalCharByMood <- renderValueBox({
         twit = twit_tokenize %>% filter(label == input$selectMood)
         
-        data <- length(unlist(twit$text_clean))
+        data <- length(unlist(twit$text_token))
 
         valueBox(
             data, "Total All Word", icon = icon("flag"),
@@ -129,7 +193,7 @@ shinyServer(function(input, output) {
     output$uniqueWordByMood <- renderValueBox({
         twit = twit_tokenize %>% filter(label == input$selectMood)
         
-        data <- length(unique(unlist(twit$text_clean)))
+        data <- length(unique(unlist(twit$text_token)))
         
         valueBox(
             data, "Unique Word", icon = icon("flag"),
@@ -170,7 +234,7 @@ shinyServer(function(input, output) {
     output$topAveragePopularity <- renderPlotly({
         data <- all_track_feature_df %>% 
             group_by(genre) %>% 
-            summarise(popularity = mean(popularity)) %>% 
+            summarise(popularity = round(mean(popularity), 2)) %>% 
             arrange(desc(popularity)) %>% 
             head(20)
         
@@ -234,7 +298,11 @@ shinyServer(function(input, output) {
             theme_minimal() +
             theme(
                 legend.position = "none"
-            ) 
+            ) + 
+            labs(
+                title = paste0("Population Popularity in Genre ", input$selectGenre)
+            )
+        
     })
     
     output$radarAudioFeatureByGenre <- renderPlotly({
@@ -254,16 +322,18 @@ shinyServer(function(input, output) {
                 fill = "toself",
                 fillcolor = 'rgba(255,186,90,0.8)',
                 line = list(color = "#629d66"),
-                marker = list(size = 10, color = "#2c7873")
+                marker = list(size = 10, color = "#2c7873"),
+                hovertemplate = paste("%{theta} : %{r}")
                 ) %>% 
             layout(
-                title = paste0("Audio Feature Characteristic"),
+                title = paste0("Audio Feature Characteristic", input$selectGenre),
                 polar = list(
                     radialaxis = list(
                         visible = T,
                         range = c(0,1)
                     )
-                )
+                ),
+                margin = list(t = 50)
             )
     })
     
@@ -564,6 +634,7 @@ shinyServer(function(input, output) {
         print("TRIGGERR model twitter")
         
         text = c(input$twitInput)
+        # text=c("test")
         label = c("")
         
         real_twit = as.data.frame(cbind(text, label))
@@ -583,11 +654,17 @@ shinyServer(function(input, output) {
         
         number <- rx_digit()
         
+        stemming <- function(x){
+            paste(lapply(x,katadasar),collapse = " ")
+        }
+        
         stop_words <- readLines("data/stopword_list.txt")
+        spell_slang_lex <- read.csv("data/colloquial-indonesian-lexicon.csv")
         
         real_twit <- real_twit %>% 
             mutate(text_clean = replace_html(text)) %>% 
             mutate(text_clean = replace_url(text_clean)) %>% 
+            mutate(text_clean = replace_emoji(text_clean)) %>% 
             mutate(text_clean = replace_tag(text_clean, pattern = "@([A-Za-z0-9_]+)", replacement = "")) %>% 
             mutate(text_clean = replace_hash(text_clean, pattern = "#@([A-Za-z0-9_]+)", replacement = "")) %>% 
             mutate(text_clean = str_replace_all(text_clean, pattern = question, replacement = "")) %>% 
@@ -597,13 +674,25 @@ shinyServer(function(input, output) {
             mutate(text_clean = gsub("USERNAME|URL", " ",text_clean)) %>% 
             mutate(text_clean = str_to_lower(text_clean)) %>% 
             mutate(text_clean = replace_word_elongation(text_clean)) %>% 
-            mutate(text_clean = tokenize_words(text_clean, stopwords = stop_words)) %>% 
+            mutate(text_clean = replace_internet_slang(text_clean,
+                                                       slang = paste0("\\b", spell_slang_lex$slang, "\\b"),
+                                                       replacement = spell_slang_lex$formal,
+                                                       ignore.case = TRUE)) %>% 
+            mutate(text_clean = strip(text_clean))
+        
+        real_twit$text_clean <- lapply(tokenize_words(real_twit$text_clean), stemming)
+        
+        real_twit <- real_twit %>%
+            mutate(text_clean = unlist(text_clean))
+            
+        real_twit <- real_twit %>%
+            mutate(text_clean = tokenize_words(text_clean, stopwords = stop_words)) %>%
             mutate(text_clean = sapply(text_clean, toString),
                    text_clean = gsub(",", ' ', text_clean)) %>% 
             select(text_clean) %>% 
             na.omit()
         
-        num_words <- 1024 
+        num_words <- 16384
         maxlen <- 49
         
         tokenizer <- text_tokenizer(num_words = num_words,
@@ -613,7 +702,8 @@ shinyServer(function(input, output) {
         data_real <- texts_to_sequences(tokenizer, real_twit$text_clean) %>% 
             pad_sequences(maxlen = maxlen)
         
-        model <- load_model_hdf5("./model/model-04052020_ver_3.h5")
+        
+        model <- load_model_hdf5("./model/model-05052020_ver_4.h5")
         
         real_pred <- model %>% 
             predict_classes(data_real) %>% 
@@ -677,7 +767,7 @@ shinyServer(function(input, output) {
         pages <- list()
         
         
-        for (i in 0:10) {
+        for (i in 0:20) {
             getTracksByGenre <- GET(callTracksByGenre,
                                     add_headers(
                                         Authorization = paste("Bearer ",token, sep = "")
@@ -785,6 +875,9 @@ shinyServer(function(input, output) {
         print(paste0("check",values$label_predict))
         print(x)
         
+        print(paste0("cluster",values$label_predict))
+        print(all_track_feature_df$cluster)
+        
         if (x == 0) {
             recomend_track <- all_track_feature_df %>% 
                 filter(cluster == 4 | cluster == 5)
@@ -812,8 +905,14 @@ shinyServer(function(input, output) {
         
         values$recommend_track_all <- unique(recomend_track)
         
+        track_n = nrow(values$recommend_track_all)
+
+        if(track_n > 20){
+            track_n = 20
+        }
+        
         recomend_track <- values$recommend_track_all %>% 
-            sample_n(20) %>% 
+            sample_n(track_n) %>% 
             arrange(desc(popularity))
         
         data <- recomend_track %>%
