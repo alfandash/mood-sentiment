@@ -31,7 +31,9 @@ library(tensorflow)
 #Visualization
 library(plotly)
 library(glue)
-library(wordcloud)
+# library(wordcloud)
+library(wordcloud2)
+source("./script/wordcloud2a.R")
 library(RColorBrewer)
 library(fmsb)
 

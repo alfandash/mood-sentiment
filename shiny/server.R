@@ -126,15 +126,26 @@ shinyServer(function(input, output) {
         ggplotly(plot, tooltip = "text")
     })
     
-    output$twitWordCloud <- renderPlot({
-        wordcloud_sample <- twit_df %>%
-            select("text") %>% 
-            sample_n(200)
+    output$twitWordCloud <- renderWordcloud2({
+        # wordcloud_sample <- twit_df %>%
+        #     select("text") %>% 
+        #     sample_n(200)
+        # 
+        # pal2 <- brewer.pal(8,"Dark2")
+        # 
+        # wordcloud(wordcloud_sample$text, scale=c(8,.2),min.freq=3,
+        #           max.words=Inf, random.order=FALSE, rot.per=.15, colors=pal2)
         
-        pal2 <- brewer.pal(8,"Dark2")
-
-        wordcloud(wordcloud_sample$text, scale=c(8,.2),min.freq=3,
-                  max.words=Inf, random.order=FALSE, rot.per=.15, colors=pal2)
+        char <- unlist(twit_tokenize$text_token)
+        char <- data.frame(char)
+        
+        char <- char %>% 
+            group_by(char) %>%
+            summarise(freq = n()) %>%
+            arrange(desc(freq)) %>% 
+            head(500)
+        
+        wordcloud2a(char, color = "black", fontFamily = "arial")
         
     })
     

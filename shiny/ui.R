@@ -3,7 +3,7 @@ twitter_eda <- fluidRow(
       plotlyOutput(outputId = "plotSummaryLabel")
   ),
   box(width = 6,
-      plotOutput(outputId = "twitWordCloud")
+      wordcloud2Output(outputId = "twitWordCloud")
   ),
   box(width = 12,
       box(width = 12,
