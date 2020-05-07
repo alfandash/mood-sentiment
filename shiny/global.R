@@ -46,7 +46,7 @@ test <- "halo string"
 
 
 #Twitter EDA
-twit_df <- read.csv("./data/05May2020.csv")
+twit_df <- read.csv("./data/07May2020.csv")
 
 twit_df <- twit_df %>% 
   mutate(text = as.character(text),
@@ -60,7 +60,7 @@ twit_label_df <- twit_df %>%
 stemming <- function(x){
   paste(lapply(x,katadasar),collapse = " ")}
 
-stop_words <- readLines("./data/stopword_list.txt")
+stop_words <- readLines("./data/stop_word.txt")
 
 twit_df <- twit_df %>%
   mutate(text_token = tokenize_words(text_token, stopwords = stop_words))
@@ -180,13 +180,13 @@ tokenizer <- text_tokenizer(num_words = num_words,
 
 
 #save model
-model_lstm <- load_model_hdf5("./model/model-05052020_ver_4.h5")
+model_lstm <- load_model_hdf5("./model/model-07052020_ver_1.h5")
 
 # Save an object to a file
-history_lstm <- readRDS(file = "./model/history-model-05052020_ver_4.rds")
+history_lstm <- readRDS(file = "./model/history-model-07052020_ver_1.rds")
 
 # Save an object to a file
-history_df <- readRDS(file = "./model/history-df-model-05052020_ver_4.rds")
+history_df <- readRDS(file = "./model/history-df-model-07052020_ver_1.rds")
 
 initial_train <- readRDS(file = "./data/initial_train_twitter.rds")
 initial_validation <- readRDS(file = "./data/initial_validation_twitter.rds")

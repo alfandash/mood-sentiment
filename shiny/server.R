@@ -1,6 +1,6 @@
 shinyServer(function(input, output) {
     output$stressLevel <- renderPlotly({
-        city <- c("Tokyo","Soul","Taipei","Manila","Istanbul","Jakarta","Buenos Aires","Mumbai")
+        city <- c("Tokyo","Seoul","Taipei","Manila","Istanbul","Jakarta","Buenos Aires","Mumbai")
         level <- c(9,7,7,5,5,4,3,2)
         
         stress_level <- data.frame(city,level)
@@ -8,7 +8,7 @@ shinyServer(function(input, output) {
         data <- stress_level
         plot <- data %>%
             ggplot(aes(reorder(city, level), level)) +
-            geom_col(aes(fill = level, text = glue("City: {city}
+            geom_col(width = 0.8, aes(fill = level, text = glue("City: {city}
                                          Stress Level: {level}"))) +
             scale_fill_gradient(low= "lightblue",
                                 high= "red") +
@@ -26,19 +26,24 @@ shinyServer(function(input, output) {
         
         plotly <- ggplotly(plot, tooltip = "text") %>% 
             layout(
-            # legend = list(orientation = "h"),
-            annotations = list(text = 'Source: data.tempo.co/read/594/jakarta-kota-dengan-tingkat-stress-ke-enam-dunia',
-                               font = list(size = 12),
-                               showarrow = FALSE,
-                               xref = 'paper', x = 1,
-                               yref = 'paper', y = 0)
+            margin = list(t = 60),
+            title = list(text = paste0("Highest City Stress Level",
+                                       "<br>",
+                                       "<sup>",
+                                       "Source: data.tempo.co/read/594/jakarta-kota-dengan-tingkat-stress-ke-enam-dunia",
+                                       "</sup>"))
+            # annotations = list(text = 'Source: data.tempo.co/read/594/jakarta-kota-dengan-tingkat-stress-ke-enam-dunia',
+            #                    font = list(size = 12),
+            #                    showarrow = FALSE,
+            #                    xref = 'paper', x = 1,
+            #                    yref = 'paper', y = -0.)
             )
     })
     
     output$socialMediaLevel <- renderPlotly({
         apps <- c("Youtube", "Whatsapp", "Facebook", "Instagram", "Line", "Twitter", "FB Messenger", "BBM", "Linkedin", "Pinterest", "Skype", "WeChat", "Snapchat", "Path", "Tumblr", "Reddit")
         level <- c(88,83,81,80,59,52,47,38,33,29,28,28,26,25,20,16)
-        type <- c("Social Nework", "Messenger", "Social Nework", "Social Nework", "Messenger", "Social Nework", "Messenger", "Messenger", "Social Nework", "Social Nework", "Messenger", "Messenger", "Social Nework", "Social Nework", "Social Nework", "Social Nework")
+        type <- c("Social Network", "Messenger", "Social Network", "Social Network", "Messenger", "Social Network", "Messenger", "Messenger", "Social Network", "Social Network", "Messenger", "Messenger", "Social Network", "Social Network", "Social Network", "Social Network")
         
         social_media_platform <- data.frame(apps,level,type)
         
@@ -48,7 +53,7 @@ shinyServer(function(input, output) {
         data <- social_media_platform
         plot <- data %>%
             ggplot(aes(reorder(apps, level), level)) +
-            geom_col(aes(fill = type, text = glue("Apps: {apps}
+            geom_col(width = 0.8,aes(fill = type, text = glue("Apps: {apps}
                                                    Percentage: {level} %
                                                    Type: {type}"))) +
             # scale_fill_gradient(low= "lightblue",
@@ -66,11 +71,17 @@ shinyServer(function(input, output) {
         
         plotly <- ggplotly(plot, tooltip = "text") %>% 
             layout(
-                annotations = list(text = 'Source: Hootsuite We are Social Indonesian Digital Report 2019',
-                                   font = list(size = 12),
-                                   showarrow = FALSE,
-                                   xref = 'paper', x = 1,
-                                   yref = 'paper', y = 0)
+                margin = list(t = 60),
+                title = list(text = paste0("Most Active Social Media Platforms",
+                                           "<br>",
+                                           "<sup>",
+                                           "Source: Hootsuite We are Social Indonesian Digital Report 2019",
+                                           "</sup>"))
+                # annotations = list(text = 'Source: Hootsuite We are Social Indonesian Digital Report 2019',
+                #                    font = list(size = 12),
+                #                    showarrow = FALSE,
+                #                    xref = 'paper', x = 1,
+                #                    yref = 'paper', y = 0)
             )
     })
     
@@ -93,17 +104,33 @@ shinyServer(function(input, output) {
     }, deleteFile = FALSE)
     
     output$aboutText <- renderText({
-        paste0("<p>Stress is a feeling of emotional or physical tension.It can come from any event or thought that makes you feel frustrated, angry, or nervous.
-        Stress is your body’s reaction to a challenge or demand.</p>
+        # paste0("<p>Stress is a feeling of emotional or physical tension.It can come from any event or thought that makes you feel frustrated, angry, or nervous.
+        # Stress is your body’s reaction to a challenge or demand.</p>
+        # 
+        # <p>In short bursts, stress can be positive, such as when it helps you avoid danger or meet a deadline. 
+        # But when stress lasts for a long time, it may harm your health. </p>
+        # 
+        # <p>From this paper source Stress in some level have crucial association with mood levels, especially stress with high level really contribute to mood swing. 
+        # This paper focusly in adult age, it mean can happen in productively working ages. </p>
+        # 
+        # <p>Most of working people life in big city, one of them is Jakarta.
+        # Based in this source link Jakarta is 6th position for highest stress city in the world </p>")
         
-        <p>In short bursts, stress can be positive, such as when it helps you avoid danger or meet a deadline. 
-        But when stress lasts for a long time, it may harm your health. </p>
-        
-        <p>From this paper source Stress in some level have crucial association with mood levels, especially stress with high level really contribute to mood swing. 
-        This paper focusly in adult age, it mean can happen in productively working ages. </p>
-        
-        <p>Most of working people life in big city, one of them is Jakarta.
-        Based in this source link Jakarta is 6th position for highest stress city in the world </p>")
+        paste0("
+               <p>Stress is a feeling of emotional or physical tension. It can come from any event or thought that makes you feel frustrated, angry, or nervous. 
+               Stress is your body’s reaction to a challenge or demand. Most working people living in a big city, one of them in Jakarta. 
+               Based in this reference Jakarta is the 6th position for the highest stress city in the world. </p>
+               
+               <p>From this paper <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5225218/'>(source)</a>, they take samples from adult age, it means can happen in productively working ages. 
+               Stress at some level have a crucial association with mood levels, especially stress with high level contribute to a mood swing. </p>
+               
+               <p>Listening to music is one of the best methods to help people change their mood and it can help them release their stress. 
+               Spotify right now one of popular music streaming in Indonesia, and based on reference twitter inside top 10 most active social media platform in Indonesia. </p>
+               
+               <p>The idea is we would try to predict mood from people tweet, and we try to recommend a list of music (playlist) 
+               that suitable with their mood and hope it can get bring the better mood to them.</p>
+               
+               ")
     })
     
     # Eda twitter Section
@@ -193,10 +220,12 @@ shinyServer(function(input, output) {
     })
     
     output$maxWordByMood <- renderValueBox({
-        data <- max(lengths(gregexpr("\\W+", twit_df$text)) + 1)
+        twit = twit_tokenize %>% filter(label == input$selectMood)
+        
+        data <- max(lengths(gregexpr("\\W+", twit$text)) + 1)
         
         valueBox(
-            data, "Max Word Twit", icon = icon("flag"),
+            data, "Max Word Tweet", icon = icon("flag"),
             color = "green"
         )
     })
@@ -296,11 +325,11 @@ shinyServer(function(input, output) {
         plotly <- ggplotly(plot, tooltip = "text")
     })
     
-    output$distributionPopularityByGenre <- renderPlot({
+    output$distributionPopularityByGenre <- renderPlotly({
         data <- all_track_feature_df %>%
             filter(genre == input$selectGenre) 
         
-        data %>% 
+        plot <- data %>% 
             ggplot(aes(x = popularity, fill = genre)) +
             geom_density(alpha=0.8) +
             geom_vline(aes(xintercept = mean(popularity), color = genre), linetype = "dashed") +
@@ -313,6 +342,8 @@ shinyServer(function(input, output) {
             labs(
                 title = paste0("Population Popularity in Genre ", input$selectGenre)
             )
+        
+        plotly <- ggplotly(plot, tooltip = "text")
         
     })
     
@@ -334,10 +365,12 @@ shinyServer(function(input, output) {
                 fillcolor = 'rgba(255,186,90,0.8)',
                 line = list(color = "#629d66"),
                 marker = list(size = 10, color = "#2c7873"),
-                hovertemplate = paste("%{theta} : %{r}")
+                # hovertemplate = paste("%{theta} : %{r}")
+                hoverinfo = 'text',
+                text = paste0(theta, " : ", round(r, 2))
                 ) %>% 
             layout(
-                title = paste0("Audio Feature Characteristic", input$selectGenre),
+                title = paste0("Audio Feature Characteristic ", input$selectGenre),
                 polar = list(
                     radialaxis = list(
                         visible = T,
@@ -489,13 +522,24 @@ shinyServer(function(input, output) {
         plotly <- plot_ly(type = "scatterpolar", 
                 r = r,
                 theta = theta,
-                fill = "toself") %>% 
+                fill = "toself",
+                fillcolor = 'rgba(255,186,90,0.8)',
+                line = list(color = "#629d66"),
+                marker = list(size = 10, color = "#2c7873"),
+                # hovertemplate = paste("%{theta} : %{r}")
+                hoverinfo = 'text',
+                text = paste0(theta, " : ", round(r, 2))
+                ) %>% 
             layout(
                 polar = list(
                     radialaxis = list(
                         visible = T,
                         range = c(0,1)
                     )
+                ),
+                margin = list(
+                    r = 70,
+                    l = 70
                 )
             )
         return(plotly)
@@ -669,7 +713,7 @@ shinyServer(function(input, output) {
             paste(lapply(x,katadasar),collapse = " ")
         }
         
-        stop_words <- readLines("data/stopword_list.txt")
+        stop_words <- readLines("data/stop_word.txt")
         spell_slang_lex <- read.csv("data/colloquial-indonesian-lexicon.csv")
         
         real_twit <- real_twit %>% 
@@ -714,7 +758,7 @@ shinyServer(function(input, output) {
             pad_sequences(maxlen = maxlen)
         
         
-        model <- load_model_hdf5("./model/model-05052020_ver_4.h5")
+        model <- load_model_hdf5("./model/model-07052020_ver_1.h5")
         
         real_pred <- model %>% 
             predict_classes(data_real) %>% 
@@ -966,13 +1010,24 @@ shinyServer(function(input, output) {
         plotly <- plot_ly(type = "scatterpolar", 
                           r = r,
                           theta = theta,
-                          fill = "toself") %>% 
+                          fill = "toself",
+                          fillcolor = 'rgba(255,186,90,0.8)',
+                          line = list(color = "#629d66"),
+                          marker = list(size = 10, color = "#2c7873"),
+                          # hovertemplate = paste("%{theta} : %{r}")
+                          hoverinfo = 'text',
+                          text = paste0(theta, " : ", round(r, 2))
+                          ) %>% 
             layout(
                 polar = list(
                     radialaxis = list(
                         visible = T,
                         range = c(0,1)
                     )
+                ),
+                margin = list(
+                    l = 70,
+                    r = 70
                 )
             )
         plotly

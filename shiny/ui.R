@@ -50,7 +50,7 @@ spotify_eda <- fluidRow(
       ),
   ),
   box(width = 6,
-      plotOutput(outputId = "distributionPopularityByGenre")
+      plotlyOutput(outputId = "distributionPopularityByGenre")
       ),
   box(width = 6,
       plotlyOutput(outputId = "radarAudioFeatureByGenre")
@@ -143,10 +143,10 @@ cluster_body <- fluidRow(class="text-justify",
                                  plotlyOutput(outputId = "radarAudioFeatureCluster5")
                              ),
                              box(width = 4,
-                                 h4("Song With Characteristics"),
                                  plotlyOutput(outputId = "plotAudioFeaturClusterGenre5")
                              ),
                              box(width = 4, 
+                                 h4("Song With Characteristics"),
                                  tableOutput(outputId = "tableArtistTitleGenre5")
                              )
                          ),
