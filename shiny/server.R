@@ -51,9 +51,9 @@ shinyServer(function(input, output) {
             mutate(type = as.factor(type))
         
         data <- social_media_platform
-        plot <- data %>%
+        plot <- head(data, 10) %>%
             ggplot(aes(reorder(apps, level), level)) +
-            geom_col(width = 0.8,aes(fill = type, text = glue("Apps: {apps}
+            geom_col(width = 0.8,position = position_dodge(width=1), aes(fill = type, text = glue("Apps: {apps}
                                                    Percentage: {level} %
                                                    Type: {type}"))) +
             # scale_fill_gradient(low= "lightblue",
@@ -61,7 +61,8 @@ shinyServer(function(input, output) {
             coord_flip() +
             theme_minimal() +
             theme(
-                legend.position = "bottom"
+                legend.position = "bottom",
+                legend.title = element_blank()
             ) +
             labs(
                 y = "Percentage Level (%)",
@@ -343,7 +344,7 @@ shinyServer(function(input, output) {
                 title = paste0("Population Popularity in Genre ", input$selectGenre)
             )
         
-        plotly <- ggplotly(plot, tooltip = "text")
+        plotly <- ggplotly(plot)
         
     })
     
@@ -681,9 +682,29 @@ shinyServer(function(input, output) {
     values <- reactiveValues(label_predict = NULL)
     values <- reactiveValues(choosen_genre = NULL)
     values <- reactiveValues(recommend_track_all = NULL)
+    values <- reactiveValues(validationText = NULL)
     
+    observeEvent(input$twitInput, {
+        print(input$twitInput)
+        
+        word_count <- sapply(strsplit(input$twitInput, " "), length)
     
+        
+        if(str_count(input$twitInput) < 20 & word_count < 5) {
+            values$validationText <- "Minimum 20 Character & 5 Word"
+            shinyjs::hide(id = "submitTwitAction")
+        }
+        
+        if(word_count > 5 & str_count(input$twitInput) > 20) {
+            shinyjs::show(id = "submitTwitAction")
+            values$validationText <- ""
+        }
+        
+    })
     
+    output$twitValidation <- renderText({
+        values$validationText
+    })
     
     twit_prediction <- eventReactive(input$submitTwitAction, {
         print("TRIGGERR model twitter")
@@ -747,6 +768,9 @@ shinyServer(function(input, output) {
             select(text_clean) %>% 
             na.omit()
         
+        print("real twit")
+        print(real_twit)
+        
         num_words <- 16384
         maxlen <- 49
         
@@ -773,6 +797,9 @@ shinyServer(function(input, output) {
         }
         
         emotion_label <- sapply(real_pred, convert_label)
+        
+        print("emotion")
+        print(emotion_label)
         
         real_twit <- real_twit %>% mutate(emotion = emotion_label, label = real_pred)
         
@@ -822,7 +849,7 @@ shinyServer(function(input, output) {
         pages <- list()
         
         
-        for (i in 0:20) {
+        for (i in 0:10) {
             getTracksByGenre <- GET(callTracksByGenre,
                                     add_headers(
                                         Authorization = paste("Bearer ",token, sep = "")
@@ -962,8 +989,8 @@ shinyServer(function(input, output) {
         
         track_n = nrow(values$recommend_track_all)
 
-        if(track_n > 20){
-            track_n = 20
+        if(track_n > 50){
+            track_n = 50
         }
         
         recomend_track <- values$recommend_track_all %>% 
@@ -971,21 +998,22 @@ shinyServer(function(input, output) {
             arrange(desc(popularity))
         
         data <- recomend_track %>%
-            select(c("name","artist.name", "album.name", "popularity")) %>% 
+            # select(c("name","artist.name", "album.name", "popularity")) %>% 
+            select(c("name","artist.name", "popularity")) %>% 
             rename("Song Name" = name,
                    "Artis" = artist.name,
-                   "Album" = album.name,
+                   # "Album" = album.name,
                    "Popularity" = popularity)
         
         data
     })
     
-    output$recommendationPlaylistTable <- renderTable({
+    output$recommendationPlaylistTable <- renderDataTable({
         
         if(is.null(values$mood_predict) == TRUE)
             return()
         
-        spotify_prediction()
+        # spotify_prediction()
     })
     
     radarTitlePrediction_reactive <- eventReactive(input$submitTwitAction, {
@@ -993,7 +1021,7 @@ shinyServer(function(input, output) {
     })
     
     output$radarTitlePrediction <- renderText({
-        radarTitlePrediction_reactive()
+        # radarTitlePrediction_reactive()
     })
     
     playlist_table <- eventReactive(input$submitTwitAction, {

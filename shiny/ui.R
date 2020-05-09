@@ -69,87 +69,109 @@ eda <- tabPanel("Data Exploration",icon = icon("compass"),
                   eda_body
 )
 
+cluster1 <- fluidRow(
+  box(width = 12,
+      h3("Cluster 1: Love Mood"),
+      p("High accousticness, danceability, Mid valence, energy, Low instrumentalness, speechiness")
+  ),
+  box(width = 12,
+      box(width = 4,
+          plotlyOutput(outputId = "radarAudioFeatureCluster1")
+      ),
+      box(width = 4,
+          plotlyOutput(outputId = "plotAudioFeaturClusterGenre1")
+      ),
+      box(width = 4,
+          h4("Song With Characteristics"),
+          tableOutput(outputId = "tableArtistTitleGenre1")
+      )
+  ),
+)
+
+cluster2 <- fluidRow(
+  box(width = 12,
+      h3("Cluster 2: Energetic Mood"),
+      p("High Energy, Mid Danceability and Valence, Low Acousticness and Instrumentalness")
+  ),
+  box(width = 12,
+      box(width = 4,
+          plotlyOutput(outputId = "radarAudioFeatureCluster2")
+      ),
+      box(width = 4,
+          plotlyOutput(outputId = "plotAudioFeaturClusterGenre2")
+      ),
+      box(width = 4, 
+          h4("Song With Characteristics"),
+          tableOutput(outputId = "tableArtistTitleGenre2")
+      )
+  ),
+)
+
+cluster3 <- fluidRow(
+  box(width = 12,
+      h3("Cluster 3: Swing Mood"),
+      p(" High Energy and Dancebility and Instrumentalness, Mid Valence, Low Acousticness")
+  ),
+  box(width = 12,
+      box(width = 4,
+          plotlyOutput(outputId = "radarAudioFeatureCluster3")
+      ),
+      box(width = 4,
+          plotlyOutput(outputId = "plotAudioFeaturClusterGenre3")
+      ),
+      box(width = 4,
+          h4("Song With Characteristics"),
+          tableOutput(outputId = "tableArtistTitleGenre3")
+      )
+  ),
+)
+
+cluster4 <- fluidRow(
+  box(width = 12,
+      h3("Cluster 4: Chill and Sad Mood"),
+      p("High acousticness and Instrumentalness, Low Valence and Energy and Danceability Speechiness")
+  ),
+  box(width = 12,
+      box(width = 4,
+          plotlyOutput(outputId = "radarAudioFeatureCluster4")
+      ),
+      box(width = 4,
+          plotlyOutput(outputId = "plotAudioFeaturClusterGenre4")
+      ),
+      box(width = 4,
+          h4("Song With Characteristics"),
+          tableOutput(outputId = "tableArtistTitleGenre4")
+      )
+  ),
+)
+
+cluster5 <- fluidRow(
+  box(width = 12,
+      h3("Cluster 5: Happy & Joy Mood"),
+      p("High Danceability Valence Energy Speachness, Low Acousticness Instrumentalness")
+  ),
+  box(width = 12,
+      box(width = 4,
+          plotlyOutput(outputId = "radarAudioFeatureCluster5")
+      ),
+      box(width = 4,
+          plotlyOutput(outputId = "plotAudioFeaturClusterGenre5")
+      ),
+      box(width = 4, 
+          h4("Song With Characteristics"),
+          tableOutput(outputId = "tableArtistTitleGenre5")
+      )
+  ),
+)
+
 cluster_body <- fluidRow(class="text-justify",
-                         box(width = 12,
-                             h3("Cluster 1: Love Mood"),
-                             p("High accousticness, danceability, Mid valence, energy, Low instrumentalness, speechiness")
-                             ),
-                         box(width = 12,
-                             box(width = 4,
-                                 plotlyOutput(outputId = "radarAudioFeatureCluster1")
-                                 ),
-                             box(width = 4,
-                                 plotlyOutput(outputId = "plotAudioFeaturClusterGenre1")
-                                 ),
-                             box(width = 4,
-                                 h4("Song With Characteristics"),
-                                 tableOutput(outputId = "tableArtistTitleGenre1")
-                                 )
-                             ),
-                         box(width = 12,
-                             h3("Cluster 2: Energetic Mood"),
-                             p("High Energy, Mid Danceability and Valence, Low Acousticness and Instrumentalness")
-                         ),
-                         box(width = 12,
-                             box(width = 4,
-                                 plotlyOutput(outputId = "radarAudioFeatureCluster2")
-                             ),
-                             box(width = 4,
-                                 plotlyOutput(outputId = "plotAudioFeaturClusterGenre2")
-                             ),
-                             box(width = 4, 
-                                 h4("Song With Characteristics"),
-                                 tableOutput(outputId = "tableArtistTitleGenre2")
-                             )
-                         ),
-                         box(width = 12,
-                             h3("Cluster 3: Swing Mood"),
-                             p(" High Energy and Dancebility and Instrumentalness, Mid Valence, Low Acousticness")
-                         ),
-                         box(width = 12,
-                             box(width = 4,
-                                 plotlyOutput(outputId = "radarAudioFeatureCluster3")
-                             ),
-                             box(width = 4,
-                                 plotlyOutput(outputId = "plotAudioFeaturClusterGenre3")
-                             ),
-                             box(width = 4,
-                                 h4("Song With Characteristics"),
-                                 tableOutput(outputId = "tableArtistTitleGenre3")
-                             )
-                         ),
-                         box(width = 12,
-                             h3("Cluster 4: Chill and Sad Mood"),
-                             p("High acousticness and Instrumentalness, Low Valence and Energy and Danceability Speechiness")
-                         ),
-                         box(width = 12,
-                             box(width = 4,
-                                 plotlyOutput(outputId = "radarAudioFeatureCluster4")
-                             ),
-                             box(width = 4,
-                                 plotlyOutput(outputId = "plotAudioFeaturClusterGenre4")
-                             ),
-                             box(width = 4,
-                                 h4("Song With Characteristics"),
-                                 tableOutput(outputId = "tableArtistTitleGenre4")
-                             )
-                         ),
-                         box(width = 12,
-                             h3("Cluster 5: Happy & Joy Mood"),
-                             p("High Danceability Valence Energy Speachness, Low Acousticness Instrumentalness")
-                         ),
-                         box(width = 12,
-                             box(width = 4,
-                                 plotlyOutput(outputId = "radarAudioFeatureCluster5")
-                             ),
-                             box(width = 4,
-                                 plotlyOutput(outputId = "plotAudioFeaturClusterGenre5")
-                             ),
-                             box(width = 4, 
-                                 h4("Song With Characteristics"),
-                                 tableOutput(outputId = "tableArtistTitleGenre5")
-                             )
-                         ),
+                        tabBox(width = 12,
+                               tabPanel("Cluster 1: Love Mood", cluster1),
+                               tabPanel("Cluster 2: Energetic Mood", cluster2),
+                               tabPanel("Cluster 3: Swing Mood", cluster3),
+                               tabPanel("Cluster 4: Chill and Sad Mood", cluster4),
+                               tabPanel("Cluster 5: Happy & Joy Mood", cluster5)
+                               )
 )
 
 cluster <- tabPanel("Song Clustering",icon = icon("project-diagram"),
@@ -159,6 +181,9 @@ cluster <- tabPanel("Song Clustering",icon = icon("project-diagram"),
 modelling_body <- fluidRow(
   column(width = 12,
          h2("Spotify Prediction Model"),
+         p("A Playlist made from prediction cluster gets from audio feature each song get from Spotify. 
+         We compare 3 prediction model to decide which model give the best result to predict it. 
+           We can see Random Forest is the best model to predict clusters of song")
   ),
   column(width = 12,
          h3("Result Confusion Matrix"),
@@ -180,6 +205,8 @@ modelling_body <- fluidRow(
   ),
   column(width = 12,
          h2("Twitter Prediction Model"),
+         p("Tweet prediction model we make from Neural Network with LSTM architecture. 
+           After we train the model to predict mood based on the dataset we have, and here is the result:")
   ),
   column(width = 12,
          h3("Result Confusion Matrix"),
@@ -207,8 +234,9 @@ recommendation_body <- fluidRow(
       h2("Mood Prediction and Playlist Recommendation"),
       ),
   column(width = 3,
-      textInput("twitInput", h3("Your Twit")
-      ),
+      textInput("twitInput", h3("Your Twit")),
+      textOutput("twitValidation"),
+      br(),
       uiOutput(outputId = "selectGenre"),
       actionButton("submitTwitAction", "Recommend My Playlist"),
       # uiOutput(outputId = "submitTwitAction"),
@@ -217,7 +245,7 @@ recommendation_body <- fluidRow(
   column(width = 5,
          h2(textOutput("sentimentTwit")),
          h3(textOutput("selectedGenre")),
-         withSpinner(tableOutput(outputId = "recommendationPlaylistTable"))
+         withSpinner(dataTableOutput(outputId = "recommendationPlaylistTable"))
          ),
   column(width = 4,
          h3(textOutput("radarTitlePrediction")),
