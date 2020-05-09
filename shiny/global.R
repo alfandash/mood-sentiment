@@ -46,11 +46,13 @@ test <- "halo string"
 
 
 #Twitter EDA
-twit_df <- read.csv("./data/07May2020.csv")
+twit_df <- read.csv("./data/09May2020.csv")
 
 twit_df <- twit_df %>% 
   mutate(text = as.character(text),
-         text_token = as.character(text_token))
+         text_token = as.character(text_token),
+         label_num = as.factor(label_num),
+         label = as.factor(label))
 
 twit_label_df <- twit_df %>% 
   group_by(label) %>% 
@@ -63,18 +65,16 @@ stemming <- function(x){
 stop_words <- readLines("./data/stop_word.txt")
 
 twit_df <- twit_df %>%
-  mutate(text_token = tokenize_words(text_token, stopwords = stop_words))
+  mutate(text_token = tokenize_words(text_token))
 
 twit_tokenize <- twit_df
 
-twit_df_clean <- twit_df %>% 
-  mutate(label_num = factor(label, levels = c("anger", "fear", "sadness", "happy", "love")),
-         label_num = as.numeric(label_num),
-         label_num = label_num-1) %>%
+twit_df_clean <- twit_df %>%
   mutate(text_token = sapply(text_token, toString),
-         text_token = gsub(",", ' ', text_token)) %>% 
-  select(text_token, label_num) %>% 
-  na.omit()
+         text_token = gsub(",", ' ', text_token)) %>%
+  select(text_token, label_num)
+
+# twit_df_clean <- twit_df
 
 
 # Spotfy EDA
@@ -171,25 +171,25 @@ accuracy_random_forest <-  as.data.frame(t(as.matrix(matrix_random_forest, what 
   select(Model, Accuracy)
 
 # Modelling twit
-num_words <- 16384
+num_words <- 2048
 # maxlen <- max(str_count(twit_df_clean$text_token, "\\w+")) + 1 
-maxlen <- 49
+maxlen <- 50
 tokenizer <- text_tokenizer(num_words = num_words,
                             lower = TRUE) %>% 
   fit_text_tokenizer(twit_df_clean$text_token)
 
 
 #save model
-model_lstm <- load_model_hdf5("./model/model-07052020_ver_1.h5")
+model_lstm <- load_model_hdf5("./model/model-09052020_ver_1.h5")
 
 # Save an object to a file
-history_lstm <- readRDS(file = "./model/history-model-07052020_ver_1.rds")
+history_lstm <- readRDS(file = "./model/history-model-09052020_ver_1.rds")
 
 # Save an object to a file
-history_df <- readRDS(file = "./model/history-df-model-07052020_ver_1.rds")
+history_df <- readRDS(file = "./model/history-df-model-09052020_ver_1.rds")
 
-initial_train <- readRDS(file = "./data/initial_train_twitter.rds")
-initial_validation <- readRDS(file = "./data/initial_validation_twitter.rds")
+initial_train <- readRDS(file = "./data/initial_train_twitter_update.rds")
+initial_validation <- readRDS(file = "./data/initial_validation_twitter_update.rds")
 
 data_train_lstm <- training(initial_train)
 data_test_lstm <- training(initial_train)

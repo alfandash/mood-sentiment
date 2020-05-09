@@ -450,13 +450,11 @@ shinyServer(function(input, output) {
         
     })
     
-    output$confusionMatrixNeuralNetworkTrain <- renderPlot ({
-        matrix_lstm <- confusionMatrix(
-            factor(data_train_pred_lstm, labels = c("anger", "fear", "sadness", "happy", "love")),
-            factor(data_train_lstm$label_num, labels = c("anger", "fear", "sadness", "happy", "love"))
-        )
+    output$confusionMatrixNaiveBayesTweet <- renderPlot ({
         
-        result_naivebayes <- as.data.frame(matrix_lstm$table)
+        matrix_naive_bayes <- readRDS("./model/confusion_naive_tweet.rds")
+        
+        result_naivebayes <- as.data.frame(matrix_naive_bayes$table)
         
         result_naivebayes %>% ggplot(aes(x = Reference, y = Prediction, fill = Freq)) +
             geom_tile() +
@@ -468,13 +466,9 @@ shinyServer(function(input, output) {
         
     })
     
-    output$accuracyNeuralNetworkTrain <- renderText({
-        data <- round(
-            accuracy_vec(
-                truth = factor(data_train_lstm$label_num, labels = c("anger", "fear", "sadness", "happy", "love")),
-                estimate = factor(data_train_pred_lstm, labels = c("anger", "fear", "sadness", "happy", "love"))
-            ) * 100
-            ,2)
+    output$accuracyNaiveBayesTweet <- renderText({
+        data <- readRDS("./model/accuracy_vec_naive_tweet.rds")
+        data <- round(data * 100, 2)
         paste0(data," %")
 
     })
@@ -706,6 +700,153 @@ shinyServer(function(input, output) {
         values$validationText
     })
     
+   
+    
+    twit_prediction_update <- eventReactive(input$submitTwitAction, {
+        print("TRIGGERR model twitter update")
+        
+        text = c(input$twitInput, input$twitInput)
+        # text=c("test","test")
+        label = c("", "")
+        
+        real_twit = as.data.frame(cbind(text, label))
+        real_twit <- real_twit %>% mutate(
+            text = as.character(text)
+        )
+        
+        mention <- rx() %>% 
+            rx_find(value = "@") %>% 
+            rx_alnum() %>% 
+            rx_one_or_more()
+        
+        hashtag <- rx() %>% 
+            rx_find(value = "#") %>% 
+            rx_alnum() %>% 
+            rx_one_or_more()
+        
+        question <- rx() %>% 
+            rx_find(value = "?") %>% 
+            rx_one_or_more()
+        
+        exclamation <- rx() %>% 
+            rx_find(value = "!") %>% 
+            rx_one_or_more()
+        
+        punctuation <- rx_punctuation()
+        
+        number <- rx_digit()
+        
+        stemming <- function(x){
+            paste(lapply(x,katadasar),collapse = " ")
+        }
+        
+        stop_words <- readLines("data/stop_word.txt")
+        spell_slang_lex <- read.csv("data/colloquial-indonesian-lexicon.csv")
+        
+        real_twit <- real_twit %>% 
+            mutate(text_clean =  gsub("USERNAME|URL", " ",text)) %>% 
+            mutate(text_clean = text_clean %>% 
+                       replace_url() %>% 
+                       replace_html() %>% 
+                       replace_emoticon() %>% 
+                       str_remove_all(pattern = mention) %>% 
+                       str_remove_all(pattern = hashtag) %>% 
+                       str_replace_all(pattern = question, replacement = " tandatanya") %>% 
+                       str_replace_all(pattern = exclamation, replacement = " tandaseru") %>% 
+                       str_replace_all(pattern = punctuation, replacement = " ") %>% 
+                       str_remove_all(pattern = number) %>% 
+                       str_to_lower() %>%
+                       str_squish() %>% 
+                       str_trim
+            ) %>% 
+            mutate(text_clean = replace_internet_slang(text_clean,
+                                                       slang = paste0("\\b", spell_slang_lex$slang, "\\b"),
+                                                       replacement = spell_slang_lex$formal,
+                                                       ignore.case = TRUE)) 
+        
+        real_twit$text_clean <- lapply(tokenize_words(real_twit$text_clean), stemming)
+        
+        
+        real_twit <- real_twit %>%
+            mutate(text_clean = tokenize_words(text_clean, stopwords = stop_words)) %>%
+            mutate(text_clean = sapply(text_clean, toString),
+                   text_clean = gsub(",", ' ', text_clean)) %>% 
+            select(text_clean)
+        
+        print("real twit")
+        print(real_twit)
+        
+        # Neural Network section
+        
+        num_words <- 2048
+        maxlen <- 50
+        
+        tokenizer <- text_tokenizer(num_words = num_words,
+                                    lower = TRUE) %>% 
+            fit_text_tokenizer(real_twit$text_clean)
+        
+        data_real <- texts_to_sequences(tokenizer, real_twit$text_clean) %>% 
+            pad_sequences(maxlen = maxlen)
+        
+        
+        model <- load_model_hdf5("./model/model-09052020_ver_1.h5")
+        
+        real_pred <- model %>% 
+            predict_classes(data_real) %>% 
+            as.vector()
+        
+        # Naive Bayes section
+        
+        model_bayes <- readRDS("./model/naive_bayes_tweet.rds")
+        freq <- readRDS("./model/dict_freq.rds")
+        
+        bernoulli_conv <- function(x){
+            x <- factor(
+                ifelse(x > 0, 1, 0), levels = c(0,1), labels = c("Absent", "Present")
+            )
+            return(x)}
+        
+        tokenize_text <- function(text) {
+            data <- VCorpus(VectorSource(text))
+            
+            # Document-Term Matrix and use only terms from data train
+            data <- DocumentTermMatrix(data, 
+                                       control = list(dictionary = freq))
+            
+            # Bernoulli Converter
+            data <- apply(data, 2, bernoulli_conv)
+            
+            return(data)
+        }
+        
+        pred_x <- tokenize_text(real_twit$text_clean)
+        
+        pred_result_naive <- predict(model_bayes, pred_x)
+        
+        convert_label <- function(x) {
+            if(x==0) {return("anger")}
+            if(x==1) {return("fear")}
+            if(x==2) {return("sadness")}
+            if(x==3) {return("happy")}
+            if(x==4) {return("love")}
+        }
+        
+        pred_result_naive_label <- sapply(pred_result_naive, convert_label)
+        
+        emotion_label <- sapply(real_pred, convert_label)
+        
+        print("emotion neural netowrk")
+        print(emotion_label)
+        
+        print("emotion neural naive")
+        print(pred_result_naive_label)
+        
+        real_twit <- real_twit %>% mutate(emotion = pred_result_naive_label, label = pred_result_naive)
+        
+        values$mood_predict <- real_twit[1,2]
+        values$label_predict <- real_twit[1,3]
+    })
+    
     twit_prediction <- eventReactive(input$submitTwitAction, {
         print("TRIGGERR model twitter")
         
@@ -809,7 +950,7 @@ shinyServer(function(input, output) {
     
     output$sentimentTwit <- renderText({
 
-        twit_prediction()
+        twit_prediction_update()
         
         paste0("Your Predict Mood is ",values$mood_predict)
     })
@@ -1013,7 +1154,7 @@ shinyServer(function(input, output) {
         if(is.null(values$mood_predict) == TRUE)
             return()
         
-        # spotify_prediction()
+        spotify_prediction()
     })
     
     radarTitlePrediction_reactive <- eventReactive(input$submitTwitAction, {

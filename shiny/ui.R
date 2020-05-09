@@ -205,20 +205,20 @@ modelling_body <- fluidRow(
   ),
   column(width = 12,
          h2("Twitter Prediction Model"),
-         p("Tweet prediction model we make from Neural Network with LSTM architecture. 
-           After we train the model to predict mood based on the dataset we have, and here is the result:")
+         p("Tweet prediction model we make from Naive Bayes Model and Neural Network with LSTM architecture. 
+           After we train the model to predict mood based on the dataset we have, We faound Naive Bayes have better result:")
   ),
   column(width = 12,
          h3("Result Confusion Matrix"),
   ),
   column(width = 6, class="text-center",
-         h3("Prediction With Data Train"),
-         plotOutput(outputId = "confusionMatrixNeuralNetworkTrain"),
+         h3("Prediction With Naive Bayes"),
+         plotOutput(outputId = "confusionMatrixNaiveBayesTweet"),
          h4("Accuracy"),
-         h4(textOutput(outputId = "accuracyNeuralNetworkTrain"))
+         h4(textOutput(outputId = "accuracyNaiveBayesTweet"))
   ),
   column(width = 6, class="text-center",
-         h3("Prediction Data Test"),
+         h3("Prediction Neural Network"),
          plotOutput(outputId = "confusionMatrixNeuralNetworkTest"),
          h4("Accuracy"),
          h4(textOutput(outputId = "accuracyNeuralNetworkTest"))
