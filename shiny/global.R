@@ -17,6 +17,7 @@ library(stringi)
 library(spotifyr)
 library(httr)
 library(katadasaR)
+library(rtweet)
 
 #modelling package
 library(e1071)

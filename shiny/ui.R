@@ -229,30 +229,60 @@ modelling <- tabPanel("Modelling", icon = icon("robot"),
                       modelling_body
                       )
 
-recommendation_body <- fluidRow(
-  box(width = 12,
-      h2("Mood Prediction and Playlist Recommendation"),
-      ),
+inputAccount <- fluidRow(
+  column(width= 3,
+    box(width = 12,
+        textInput("tweetAccountInput", h3("Your Account")),
+        textOutput("accountValidation"),
+        br(),
+        uiOutput(outputId = "selectGenreAccount"),
+        actionButton("submitTwitAccountAction", "Recommend My Playlist"),
+    )
+  ),
+  column(width = 5,
+         h2(textOutput("sentimentTwitAccount")),
+         h3(textOutput("selectedGenreAccount")),
+         withSpinner(dataTableOutput(outputId = "recommendationPlaylistTableAccount"))
+  ),
+  column(width = 4,
+         h3(textOutput("radarTitlePredictionAccount")),
+         br(),
+         plotlyOutput(outputId = "radarRecommendPlaylistAccount")
+  )
+)
+
+inputText <-fluidRow(
   column(width = 3,
-      textInput("twitInput", h3("Your Twit")),
-      textOutput("twitValidation"),
-      br(),
-      uiOutput(outputId = "selectGenre"),
-      actionButton("submitTwitAction", "Recommend My Playlist"),
-      # uiOutput(outputId = "submitTwitAction"),
-      # textOutput("test"),
-      ),
+         box(width = 12,
+             textInput("twitInput", h3("Your Twit")),
+             textOutput("twitValidation"),
+             br(),
+             uiOutput(outputId = "selectGenre"),
+             actionButton("submitTwitAction", "Recommend My Playlist"),
+             # uiOutput(outputId = "submitTwitAction"),
+             # textOutput("test"),
+         )
+  ),
   column(width = 5,
          h2(textOutput("sentimentTwit")),
          h3(textOutput("selectedGenre")),
          withSpinner(dataTableOutput(outputId = "recommendationPlaylistTable"))
-         ),
+  ),
   column(width = 4,
          h3(textOutput("radarTitlePrediction")),
          br(),
          plotlyOutput(outputId = "radarRecommendPlaylist")
-         )
-  
+  )
+)
+
+recommendation_body <- fluidRow(
+  box(width = 12,
+      h2("Mood Prediction and Playlist Recommendation"),
+      ),
+  tabBox(width = 12,
+         tabPanel("Input",inputText),
+         tabPanel("Twitter Account", inputAccount)
+  )
 )
 
 recommendation <- tabPanel("Recommendation", icon = icon("chart-line"),
@@ -281,6 +311,7 @@ about <- tabPanel("About",icon = icon("info"),
 home <- tabPanel("Home",icon = icon("home"),
                  box(width = 12, align = "center",
                      imageOutput(outputId = "homeImageLanding")
+                     # uiOutput(outputId = "previewTrack")
                  )
                  
 )

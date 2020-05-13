@@ -677,21 +677,20 @@ shinyServer(function(input, output) {
     values <- reactiveValues(choosen_genre = NULL)
     values <- reactiveValues(recommend_track_all = NULL)
     values <- reactiveValues(validationText = NULL)
+    values <- reactiveValues(validationAccountText = NULL)
+    values <- reactiveValues(validationBeforePrdictionText = NULL)
     
-    observeEvent(input$twitInput, {
-        print(input$twitInput)
+    observeEvent(input$tweetAccountInput, {
+        whiteSpace <- str_count(input$tweetAccountInput, " ")
         
-        word_count <- sapply(strsplit(input$twitInput, " "), length)
-    
-        
-        if(str_count(input$twitInput) < 20 & word_count < 5) {
-            values$validationText <- "Minimum 20 Character & 5 Word"
-            shinyjs::hide(id = "submitTwitAction")
+        if(str_count(input$tweetAccountInput) < 2 | whiteSpace >= 0) {
+            values$validationAccountText <- "Minimum 2 Character without space"
+            shinyjs::hide(id = "submitTwitAccountAction")
         }
         
-        if(word_count > 5 & str_count(input$twitInput) > 20) {
-            shinyjs::show(id = "submitTwitAction")
-            values$validationText <- ""
+        if(str_count(input$tweetAccountInput) >= 2 & whiteSpace == 0) {
+            shinyjs::show(id = "submitTwitAccountAction")
+            values$validationAccountText <- NULL
         }
         
     })
@@ -700,12 +699,11 @@ shinyServer(function(input, output) {
         values$validationText
     })
     
-   
     
-    twit_prediction_update <- eventReactive(input$submitTwitAction, {
+    twitPrdictionFunction <- function(textInput, source) {
         print("TRIGGERR model twitter update")
         
-        text = c(input$twitInput, input$twitInput)
+        text = c(textInput, textInput)
         # text=c("test","test")
         label = c("", "")
         
@@ -843,131 +841,46 @@ shinyServer(function(input, output) {
         
         real_twit <- real_twit %>% mutate(emotion = pred_result_naive_label, label = pred_result_naive)
         
-        values$mood_predict <- real_twit[1,2]
-        values$label_predict <- real_twit[1,3]
-    })
+        
+        if(source == "account") {
+            values$mood_predict_account <- real_twit[1,2]
+            values$label_predict_account <- real_twit[1,3]
+        }
+        
+        if(source == "text") {
+            values$mood_predict <- real_twit[1,2]
+            values$label_predict <- real_twit[1,3]
+        }
+       
+    }
+   
     
-    twit_prediction <- eventReactive(input$submitTwitAction, {
-        print("TRIGGERR model twitter")
+    twit_prediction_update <- eventReactive(input$submitTwitAction, {
+        print("submit input")
+        twitPrdictionFunction(input$twitInput, "text")
         
-        text = c(input$twitInput)
-        # text=c("test")
-        label = c("")
-        
-        real_twit = as.data.frame(cbind(text, label))
-        real_twit <- real_twit %>% mutate(
-            text = as.character(text)
-        )
-        
-        question <- rx() %>% 
-            rx_find(value = "?") %>% 
-            rx_one_or_more()
-        
-        exclamation <- rx() %>% 
-            rx_find(value = "!") %>% 
-            rx_one_or_more()
-        
-        punctuation <- rx_punctuation()
-        
-        number <- rx_digit()
-        
-        stemming <- function(x){
-            paste(lapply(x,katadasar),collapse = " ")
-        }
-        
-        stop_words <- readLines("data/stop_word.txt")
-        spell_slang_lex <- read.csv("data/colloquial-indonesian-lexicon.csv")
-        
-        real_twit <- real_twit %>% 
-            mutate(text_clean = replace_html(text)) %>% 
-            mutate(text_clean = replace_url(text_clean)) %>% 
-            mutate(text_clean = replace_emoji(text_clean)) %>% 
-            mutate(text_clean = replace_tag(text_clean, pattern = "@([A-Za-z0-9_]+)", replacement = "")) %>% 
-            mutate(text_clean = replace_hash(text_clean, pattern = "#@([A-Za-z0-9_]+)", replacement = "")) %>% 
-            mutate(text_clean = str_replace_all(text_clean, pattern = question, replacement = "")) %>% 
-            mutate(text_clean = str_replace_all(text_clean, pattern = exclamation, replacement = "")) %>% 
-            mutate(text_clean = str_replace_all(text_clean, pattern = punctuation, replacement = " ")) %>% 
-            mutate(text_clean = str_remove_all(text_clean, pattern = number)) %>% 
-            mutate(text_clean = gsub("USERNAME|URL", " ",text_clean)) %>% 
-            mutate(text_clean = str_to_lower(text_clean)) %>% 
-            mutate(text_clean = replace_word_elongation(text_clean)) %>% 
-            mutate(text_clean = replace_internet_slang(text_clean,
-                                                       slang = paste0("\\b", spell_slang_lex$slang, "\\b"),
-                                                       replacement = spell_slang_lex$formal,
-                                                       ignore.case = TRUE)) %>% 
-            mutate(text_clean = strip(text_clean))
-        
-        real_twit$text_clean <- lapply(tokenize_words(real_twit$text_clean), stemming)
-        
-        real_twit <- real_twit %>%
-            mutate(text_clean = unlist(text_clean))
-            
-        real_twit <- real_twit %>%
-            mutate(text_clean = tokenize_words(text_clean, stopwords = stop_words)) %>%
-            mutate(text_clean = sapply(text_clean, toString),
-                   text_clean = gsub(",", ' ', text_clean)) %>% 
-            select(text_clean) %>% 
-            na.omit()
-        
-        print("real twit")
-        print(real_twit)
-        
-        num_words <- 16384
-        maxlen <- 49
-        
-        tokenizer <- text_tokenizer(num_words = num_words,
-                                    lower = TRUE) %>% 
-            fit_text_tokenizer(real_twit$text_clean)
-        
-        data_real <- texts_to_sequences(tokenizer, real_twit$text_clean) %>% 
-            pad_sequences(maxlen = maxlen)
-        
-        
-        model <- load_model_hdf5("./model/model-07052020_ver_1.h5")
-        
-        real_pred <- model %>% 
-            predict_classes(data_real) %>% 
-            as.vector()
-        
-        convert_label <- function(x) {
-            if(x==0) {return("anger")}
-            if(x==1) {return("fear")}
-            if(x==2) {return("sadness")}
-            if(x==3) {return("happy")}
-            if(x==4) {return("love")}
-        }
-        
-        emotion_label <- sapply(real_pred, convert_label)
-        
-        print("emotion")
-        print(emotion_label)
-        
-        real_twit <- real_twit %>% mutate(emotion = emotion_label, label = real_pred)
-        
-        values$mood_predict <- real_twit[1,2]
-        values$label_predict <- real_twit[1,3]
     })
     
     output$sentimentTwit <- renderText({
-
         twit_prediction_update()
-        
+      
         paste0("Your Predict Mood is ",values$mood_predict)
     })
     
     selectedgenre_reactive <- eventReactive(input$submitTwitAction, {
-        paste0("Recomend playlist with genre ",input$selectGenreTwit)
+        if(is.null(values$validationBeforePrdictionText)) {
+            paste0("Recomend playlist with genre ",input$selectGenreTwit)
+        }
     })
     
     output$selectedGenre <- renderText({
         selectedgenre_reactive()
     })
     
-    spotify_prediction <- eventReactive(input$submitTwitAction, {
+    spotifyPrdictionFunction <- function(label_predict, selectGenre, source) {
         print("TRIGGERR model spotify")
         
-        id <- "d6e8fbb83d7a4948a13a3f3f1962ae29"
-        secret <- "4bfd5b59bab3454f8e6510e2e9dc5d6a"
+        source("./script/spotify_key.R")
         
         base <- "https://api.spotify.com/v1/"
         
@@ -975,7 +888,7 @@ shinyServer(function(input, output) {
         token <- get_spotify_access_token(client_id = id,
                                           client_secret = secret)
         
-        genre = input$selectGenreTwit
+        genre = selectGenre
         limit = "100"
         market = "ID"
         
@@ -1093,13 +1006,7 @@ shinyServer(function(input, output) {
         
         all_track_feature_df <- cbind(all_track_feature_df,as.data.frame(cluster))
         
-        x = values$label_predict
-        
-        print(paste0("check",values$label_predict))
-        print(x)
-        
-        print(paste0("cluster",values$label_predict))
-        print(all_track_feature_df$cluster)
+        x = label_predict
         
         if (x == 0) {
             recomend_track <- all_track_feature_df %>% 
@@ -1126,17 +1033,26 @@ shinyServer(function(input, output) {
                 filter(cluster == 4 | cluster == 5)
         }
         
-        values$recommend_track_all <- unique(recomend_track)
+        recomend_track <- unique(recomend_track)
         
-        track_n = nrow(values$recommend_track_all)
-
+        track_n = nrow(recomend_track)
+        
         if(track_n > 50){
             track_n = 50
         }
         
-        recomend_track <- values$recommend_track_all %>% 
+        recomend_track <- recomend_track %>% 
             sample_n(track_n) %>% 
             arrange(desc(popularity))
+        
+        
+        if(source == "account") {
+            values$recommend_track_all_account <- recomend_track
+        }
+        
+        if(source == "text") {
+            values$recommend_track_all <- recomend_track
+        }
         
         data <- recomend_track %>%
             # select(c("name","artist.name", "album.name", "popularity")) %>% 
@@ -1147,7 +1063,13 @@ shinyServer(function(input, output) {
                    "Popularity" = popularity)
         
         data
+    }
+    
+    spotify_prediction <- eventReactive(input$submitTwitAction, {
+        spotifyPrdictionFunction(values$label_predict, input$selectGenreTwit, "text")
     })
+    
+   
     
     output$recommendationPlaylistTable <- renderDataTable({
         
@@ -1162,7 +1084,7 @@ shinyServer(function(input, output) {
     })
     
     output$radarTitlePrediction <- renderText({
-        # radarTitlePrediction_reactive()
+        radarTitlePrediction_reactive()
     })
     
     playlist_table <- eventReactive(input$submitTwitAction, {
@@ -1210,10 +1132,166 @@ shinyServer(function(input, output) {
         playlist_table()
         
     })
+    
+################################33
+    
+    values <- reactiveValues(mood_predict_account = NULL)
+    values <- reactiveValues(label_predict_account = NULL)
+    values <- reactiveValues(choosen_genre_account = NULL)
+    values <- reactiveValues(recommend_track_all_account = NULL)
+    
+    spotify_prediction_account <- eventReactive(input$submitTwitAccountAction, {
+        spotifyPrdictionFunction(values$label_predict_account, input$selectGenreTwitAccount, "account")
+    })
+    
+    output$recommendationPlaylistTableAccount <- renderDataTable({
+        
+        if(is.null(values$mood_predict_account) == TRUE)
+            return()
+        
+        spotify_prediction_account()
+    })
+    
+    selectedgenre_reactive_account <- eventReactive(input$submitTwitAccountAction, {
+        paste0("Recomend playlist with genre ",input$selectGenreTwitAccount)
+    })
+    
+    output$selectedGenreAccount <- renderText({
+        selectedgenre_reactive_account()
+    })
+    
+    twit_prediction_by_account <- eventReactive(input$submitTwitAccountAction, {
+        
+        print("submit account twitter")
+        
+        source("./script/twitter_key.R")
+        
+        token <- create_token(
+            consumer_key = consumer_key,
+            consumer_secret = consumer_secret,
+            access_token = access_token,
+            access_secret = access_token_secret)
+        
+        users <- c(
+            input$tweetAccountInput
+        )
+        
+        ## get users data
+        usr_df <- lookup_users(users)
+        
+        print(is.null(usr_df$text))
+        
+        ## view users data
+        if(is.null(usr_df$text) == TRUE) {
+            values$validationBeforePrdictionText <- paste0("Cant found Twitter Account: ",input$tweetAccountInput)
+        } else {
+            twitPrdictionFunction(usr_df$text, "account")
+        }
+        
+    })
+    
+    output$sentimentTwitAccount <- renderText({
+        twit_prediction_by_account()
+        
+        print(is.null(values$validationBeforePrdictionText))
+        
+        if(is.null(values$validationBeforePrdictionText)) {
+            paste0("Your Predict Mood is ",values$mood_predict_account)
+        } else {
+            paste0(values$validationBeforePrdictionText)
+        }
+    })
+    
+    output$selectGenreAccount <- renderUI({
+        genre <- genreChoice()
+        
+        selectizeInput(
+            inputId = "selectGenreTwitAccount",
+            label = "Select Genre You Like",
+            choices = genre
+        )
+    })
+    
+    observeEvent(input$twitInput, {
+        print(input$twitInput)
+        
+        word_count <- sapply(strsplit(input$twitInput, " "), length)
+        
+        
+        if(str_count(input$twitInput) < 20 & word_count < 5) {
+            values$validationText <- "Minimum 20 Character & 5 Word"
+            shinyjs::hide(id = "submitTwitAction")
+        }
+        
+        if(word_count > 5 & str_count(input$twitInput) > 20) {
+            shinyjs::show(id = "submitTwitAction")
+            values$validationText <- NULL
+        }
+        
+    })
+    
+    output$accountValidation <- renderText({
+        values$validationAccountText
+    })
+    
+    radarTitlePredictionAccout_reactive <- eventReactive(input$submitTwitAccountAction, {
+        "Playlist recomendation Characteristic"
+    })
+    
+    output$radarTitlePredictionAccount <- renderText({
+        radarTitlePredictionAccout_reactive()
+    })
+    
+    playlist_table_account <- eventReactive(input$submitTwitAccountAction, {
+        data <- values$recommend_track_all_account
+        
+        data <- data %>% 
+            select(c("valence", "energy", "danceability", "loudness", "acousticness", "instrumentalness", "speechiness")) %>% 
+            mutate(loudness = rescale(loudness)) %>% 
+            summarise_all(mean)
+        
+        theta <- c("valence", "energy", "danceability", "loudness", "acousticness", "instrumentalness", "speechiness")
+        r <- as.numeric(data[1,])
+        
+        plotly <- plot_ly(type = "scatterpolar", 
+                          r = r,
+                          theta = theta,
+                          fill = "toself",
+                          fillcolor = 'rgba(255,186,90,0.8)',
+                          line = list(color = "#629d66"),
+                          marker = list(size = 10, color = "#2c7873"),
+                          # hovertemplate = paste("%{theta} : %{r}")
+                          hoverinfo = 'text',
+                          text = paste0(theta, " : ", round(r, 2))
+        ) %>% 
+            layout(
+                polar = list(
+                    radialaxis = list(
+                        visible = T,
+                        range = c(0,1)
+                    )
+                ),
+                margin = list(
+                    l = 70,
+                    r = 70
+                )
+            )
+        plotly
+    })
+    
+    output$radarRecommendPlaylistAccount <- renderPlotly({
+        
+        if(is.null(values$recommend_track_all_account) == TRUE)
+            return()
+        
+        playlist_table_account()
+        
+    })
+    
+    output$previewTrack <- renderUI({
+        test <- "https://p.scdn.co/mp3-preview/3eb16018c2a700240e9dfb8817b6f2d041f15eb1?cid=774b29d4f13844c495f206cafdad9c86"
+        div(style = "padding: 0; position: fixed; bottom: 0;",
+            HTML(paste0('<audio src="', test,'" type="audio/mp3" controls></audio>'))
+        )
+    })
 })
-
-
-
-
-
-
