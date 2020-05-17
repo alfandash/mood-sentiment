@@ -1329,10 +1329,10 @@ shinyServer(function(input, output, session) {
       tbl_album[[cluster]] <- all_track_feature_df %>% 
         filter(cluster == 1) %>% 
         drop_na(album.img.url) %>% 
-        sample_n(6) %>% 
+        sample_n(9) %>% 
         select(c("artist.name","name","album.img.url", "album.name", "album.release_date"))
       
-      lapply(1:6, function(i) {
+      lapply(1:9, function(i) {
         text <- glue('Song: {isolate(tbl_album[[cluster]][i,"artist.name"])} <br>
                                Artist: {isolate(tbl_album[[cluster]][i,"name"])} <br>
                                Album: {isolate(tbl_album[[cluster]][i,"album.name"])} <br>
@@ -1342,7 +1342,7 @@ shinyServer(function(input, output, session) {
         outputId <- paste0("image_",cluster,"_",i)
         src <- isolate(tbl_album[[cluster]][i,"album.img.url"])
         output[[outputId]] <- renderUI(tags$img(src = src,
-                                                height = "120")
+                                                height = "110")
         )
         
         addPopover(session, outputId, "Detail",
