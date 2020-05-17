@@ -4,6 +4,7 @@ library(shinythemes)
 library(DT)
 library(shinyjs)
 library(shinyWidgets)
+library(shinyBS)
 
 # Wrangling and Plotting Package
 library(tidyverse)

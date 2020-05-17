@@ -1,4 +1,4 @@
-shinyServer(function(input, output) {
+shinyServer(function(input, output, session) {
     output$stressLevel <- renderPlotly({
         city <- c("Tokyo","Seoul","Taipei","Manila","Istanbul","Jakarta","Buenos Aires","Mumbai")
         level <- c(9,7,7,5,5,4,3,2)
@@ -91,7 +91,8 @@ shinyServer(function(input, output) {
         return(list(
             src = "images/home-1.png",
             contentType = "image/png",
-            height = "130%"
+            height = "130%",
+            alt = "test"
         ))
     }, deleteFile = FALSE)
     
@@ -105,17 +106,6 @@ shinyServer(function(input, output) {
     }, deleteFile = FALSE)
     
     output$aboutText <- renderText({
-        # paste0("<p>Stress is a feeling of emotional or physical tension.It can come from any event or thought that makes you feel frustrated, angry, or nervous.
-        # Stress is your body’s reaction to a challenge or demand.</p>
-        # 
-        # <p>In short bursts, stress can be positive, such as when it helps you avoid danger or meet a deadline. 
-        # But when stress lasts for a long time, it may harm your health. </p>
-        # 
-        # <p>From this paper source Stress in some level have crucial association with mood levels, especially stress with high level really contribute to mood swing. 
-        # This paper focusly in adult age, it mean can happen in productively working ages. </p>
-        # 
-        # <p>Most of working people life in big city, one of them is Jakarta.
-        # Based in this source link Jakarta is 6th position for highest stress city in the world </p>")
         
         paste0("
                <p>Stress is a feeling of emotional or physical tension. It can come from any event or thought that makes you feel frustrated, angry, or nervous. 
@@ -155,15 +145,6 @@ shinyServer(function(input, output) {
     })
     
     output$twitWordCloud <- renderWordcloud2({
-        # wordcloud_sample <- twit_df %>%
-        #     select("text") %>% 
-        #     sample_n(200)
-        # 
-        # pal2 <- brewer.pal(8,"Dark2")
-        # 
-        # wordcloud(wordcloud_sample$text, scale=c(8,.2),min.freq=3,
-        #           max.words=Inf, random.order=FALSE, rot.per=.15, colors=pal2)
-        
         char <- unlist(twit_tokenize$text_token)
         char <- data.frame(char)
         
@@ -685,11 +666,11 @@ shinyServer(function(input, output) {
         
         if(str_count(input$tweetAccountInput) < 2 | whiteSpace >= 0) {
             values$validationAccountText <- "Minimum 2 Character without space"
-            shinyjs::hide(id = "submitTwitAccountAction")
+            shinyjs::disable(id = "submitTwitAccountAction")
         }
         
         if(str_count(input$tweetAccountInput) >= 2 & whiteSpace == 0) {
-            shinyjs::show(id = "submitTwitAccountAction")
+            shinyjs::enable(id = "submitTwitAccountAction")
             values$validationAccountText <- NULL
         }
         
@@ -1139,6 +1120,7 @@ shinyServer(function(input, output) {
     values <- reactiveValues(label_predict_account = NULL)
     values <- reactiveValues(choosen_genre_account = NULL)
     values <- reactiveValues(recommend_track_all_account = NULL)
+    values <- reactiveValues(twitter_detail_account = NULL)
     
     spotify_prediction_account <- eventReactive(input$submitTwitAccountAction, {
         spotifyPrdictionFunction(values$label_predict_account, input$selectGenreTwitAccount, "account")
@@ -1179,13 +1161,16 @@ shinyServer(function(input, output) {
         ## get users data
         usr_df <- lookup_users(users)
         
-        print(is.null(usr_df$text))
-        
         ## view users data
         if(is.null(usr_df$text) == TRUE) {
             values$validationBeforePrdictionText <- paste0("Cant found Twitter Account: ",input$tweetAccountInput)
+        } else if (is.na(usr_df$text)){
+            values$validationBeforePrdictionText <- paste0("Cant get last tweet! maybe user private or suspended")
+            shinyjs::hide("selectedGenreAccount")
+            shinyjs::hide("radarTitlePredictionAccount")
         } else {
             twitPrdictionFunction(usr_df$text, "account")
+            values$twitter_detail_account <- usr_df
         }
         
     })
@@ -1199,6 +1184,49 @@ shinyServer(function(input, output) {
             paste0("Your Predict Mood is ",values$mood_predict_account)
         } else {
             paste0(values$validationBeforePrdictionText)
+        }
+    })
+    
+    # output$userProfileImageTweetDummy <- renderImage({
+    #     if(is.null(values$twitter_detail_account) == TRUE) {
+    #         shinyjs::hide(id = "userProfileImageTweet")
+    #         shinyjs::show(id = "userProfileImageTweetDummy")
+    #         return(list(
+    #             src = "./images/dummy_user_profile_image.png",
+    #             contentType = "image/png"
+    #         ))
+    #     } else {
+    #         shinyjs::show(id = "userProfileImageTweet")
+    #         shinyjs::hide(id = "userProfileImageTweetDummy")
+    #     }
+    # }, deleteFile = FALSE)
+    # 
+    output$userProfileImageTweet <- renderUI({
+        if(is.null(values$twitter_detail_account) == FALSE) {
+            src <- str_remove(values$twitter_detail_account$profile_image_url, "_normal")
+            tags$img(src = src,
+                     height = "150")
+        } else{
+            src <- "dummy_user_profile_image.png"
+            tags$img(src = src,
+                     height = "150")
+        }
+
+    })
+    
+    output$userLastTweet <- renderText({
+        if(is.null(values$twitter_detail_account) == FALSE) {
+            paste0("'",values$twitter_detail_account$text,"'")
+        } else {
+            return("-")
+        }
+    })
+    
+    output$userScreenNameTweet <- renderText({
+        if(is.null(values$twitter_detail_account) == FALSE) {
+            paste0(values$twitter_detail_account$name)
+        } else {
+            return("-")
         }
     })
     
@@ -1220,11 +1248,11 @@ shinyServer(function(input, output) {
         
         if(str_count(input$twitInput) < 20 & word_count < 5) {
             values$validationText <- "Minimum 20 Character & 5 Word"
-            shinyjs::hide(id = "submitTwitAction")
+            shinyjs::disable(id = "submitTwitAction")
         }
         
         if(word_count > 5 & str_count(input$twitInput) > 20) {
-            shinyjs::show(id = "submitTwitAction")
+            shinyjs::enable(id = "submitTwitAction")
             values$validationText <- NULL
         }
         
@@ -1294,4 +1322,35 @@ shinyServer(function(input, output) {
             HTML(paste0('<audio src="', test,'" type="audio/mp3" controls></audio>'))
         )
     })
+    
+    tbl_album <- reactiveValues()
+    lapply(1:5, function(y) {
+      cluster <- paste0("cluster_",y)
+      tbl_album[[cluster]] <- all_track_feature_df %>% 
+        filter(cluster == 1) %>% 
+        drop_na(album.img.url) %>% 
+        sample_n(6) %>% 
+        select(c("artist.name","name","album.img.url", "album.name", "album.release_date"))
+      
+      lapply(1:6, function(i) {
+        text <- glue('Song: {isolate(tbl_album[[cluster]][i,"artist.name"])} <br>
+                               Artist: {isolate(tbl_album[[cluster]][i,"name"])} <br>
+                               Album: {isolate(tbl_album[[cluster]][i,"album.name"])} <br>
+                               Release: {isolate(tbl_album[[cluster]][i,"album.release_date"])} <br>
+                              ')
+        
+        outputId <- paste0("image_",cluster,"_",i)
+        src <- isolate(tbl_album[[cluster]][i,"album.img.url"])
+        output[[outputId]] <- renderUI(tags$img(src = src,
+                                                height = "120")
+        )
+        
+        addPopover(session, outputId, "Detail",
+                   text,
+                   placement = "left",
+                   trigger = "hover", options = NULL)
+      })
+    })
+    
+    
 })

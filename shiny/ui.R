@@ -78,13 +78,27 @@ cluster1 <- fluidRow(
       box(width = 4,
           plotlyOutput(outputId = "radarAudioFeatureCluster1")
       ),
-      box(width = 4,
+      box(width = 5,
           plotlyOutput(outputId = "plotAudioFeaturClusterGenre1")
       ),
-      box(width = 4,
-          h4("Song With Characteristics"),
-          tableOutput(outputId = "tableArtistTitleGenre1")
-      )
+      # box(width = 4,
+      #     h4("Song With Characteristics"),
+      #     tableOutput(outputId = "tableArtistTitleGenre1")
+      # )
+      box(width = 3,
+          tags$style(".popover{width:400px;}"),
+          bsTooltip(id = "image_example", title = "This gauge shows the input value from the slider.", placement = "bottom"),
+          column(width = 5,
+                 uiOutput(outputId = "image_cluster_1_1"),
+                 uiOutput(outputId = "image_cluster_1_2"),
+                 uiOutput(outputId = "image_cluster_1_3"),
+          ),
+          column(width = 5,
+                 uiOutput(outputId = "image_cluster_1_4"),
+                 uiOutput(outputId = "image_cluster_1_5"),
+                 uiOutput(outputId = "image_cluster_1_6"),
+          )
+      ),
   ),
 )
 
@@ -97,13 +111,27 @@ cluster2 <- fluidRow(
       box(width = 4,
           plotlyOutput(outputId = "radarAudioFeatureCluster2")
       ),
-      box(width = 4,
+      box(width = 5,
           plotlyOutput(outputId = "plotAudioFeaturClusterGenre2")
       ),
-      box(width = 4, 
-          h4("Song With Characteristics"),
-          tableOutput(outputId = "tableArtistTitleGenre2")
-      )
+      # box(width = 4, 
+      #     h4("Song With Characteristics"),
+      #     tableOutput(outputId = "tableArtistTitleGenre2")
+      # )
+      box(width = 3,
+          tags$style(".popover{width:400px;}"),
+          bsTooltip(id = "image_example", title = "This gauge shows the input value from the slider.", placement = "bottom"),
+          column(width = 5,
+                 uiOutput(outputId = "image_cluster_2_1"),
+                 uiOutput(outputId = "image_cluster_2_2"),
+                 uiOutput(outputId = "image_cluster_2_3"),
+          ),
+          column(width = 5,
+                 uiOutput(outputId = "image_cluster_2_4"),
+                 uiOutput(outputId = "image_cluster_2_5"),
+                 uiOutput(outputId = "image_cluster_2_6"),
+          )
+      ),
   ),
 )
 
@@ -116,13 +144,27 @@ cluster3 <- fluidRow(
       box(width = 4,
           plotlyOutput(outputId = "radarAudioFeatureCluster3")
       ),
-      box(width = 4,
+      box(width = 5,
           plotlyOutput(outputId = "plotAudioFeaturClusterGenre3")
       ),
-      box(width = 4,
-          h4("Song With Characteristics"),
-          tableOutput(outputId = "tableArtistTitleGenre3")
-      )
+      # box(width = 4,
+      #     h4("Song With Characteristics"),
+      #     tableOutput(outputId = "tableArtistTitleGenre3")
+      # )
+      box(width = 3,
+          tags$style(".popover{width:400px;}"),
+          bsTooltip(id = "image_example", title = "This gauge shows the input value from the slider.", placement = "bottom"),
+          column(width = 5,
+                 uiOutput(outputId = "image_cluster_3_1"),
+                 uiOutput(outputId = "image_cluster_3_2"),
+                 uiOutput(outputId = "image_cluster_3_3"),
+          ),
+          column(width = 5,
+                 uiOutput(outputId = "image_cluster_3_4"),
+                 uiOutput(outputId = "image_cluster_3_5"),
+                 uiOutput(outputId = "image_cluster_3_6"),
+          )
+      ),
   ),
 )
 
@@ -135,13 +177,27 @@ cluster4 <- fluidRow(
       box(width = 4,
           plotlyOutput(outputId = "radarAudioFeatureCluster4")
       ),
-      box(width = 4,
+      box(width = 5,
           plotlyOutput(outputId = "plotAudioFeaturClusterGenre4")
       ),
-      box(width = 4,
-          h4("Song With Characteristics"),
-          tableOutput(outputId = "tableArtistTitleGenre4")
-      )
+      # box(width = 3,
+      #     h4("Song With Characteristics"),
+      #     tableOutput(outputId = "tableArtistTitleGenre4")
+      # )
+      box(width = 3,
+          tags$style(".popover{width:400px;}"),
+          bsTooltip(id = "image_example", title = "This gauge shows the input value from the slider.", placement = "bottom"),
+          column(width = 5,
+                 uiOutput(outputId = "image_cluster_4_1"),
+                 uiOutput(outputId = "image_cluster_4_2"),
+                 uiOutput(outputId = "image_cluster_4_3"),
+          ),
+          column(width = 5,
+                 uiOutput(outputId = "image_cluster_4_4"),
+                 uiOutput(outputId = "image_cluster_4_5"),
+                 uiOutput(outputId = "image_cluster_4_6"),
+          )
+      ),
   ),
 )
 
@@ -154,13 +210,27 @@ cluster5 <- fluidRow(
       box(width = 4,
           plotlyOutput(outputId = "radarAudioFeatureCluster5")
       ),
-      box(width = 4,
+      box(width = 5,
           plotlyOutput(outputId = "plotAudioFeaturClusterGenre5")
       ),
-      box(width = 4, 
-          h4("Song With Characteristics"),
-          tableOutput(outputId = "tableArtistTitleGenre5")
-      )
+      # box(width = 4, 
+      #     h4("Song With Characteristics"),
+      #     tableOutput(outputId = "tableArtistTitleGenre5")
+      # )
+      box(width = 3,
+          tags$style(".popover{width:400px;}"),
+          bsTooltip(id = "image_example", title = "This gauge shows the input value from the slider.", placement = "bottom"),
+          column(width = 5,
+                 uiOutput(outputId = "image_cluster_5_1"),
+                 uiOutput(outputId = "image_cluster_5_2"),
+                 uiOutput(outputId = "image_cluster_5_3"),
+          ),
+          column(width = 5,
+                 uiOutput(outputId = "image_cluster_5_4"),
+                 uiOutput(outputId = "image_cluster_5_5"),
+                 uiOutput(outputId = "image_cluster_5_6"),
+          )
+      ),
   ),
 )
 
@@ -237,10 +307,19 @@ inputAccount <- fluidRow(
         br(),
         uiOutput(outputId = "selectGenreAccount"),
         actionButton("submitTwitAccountAction", "Recommend My Playlist"),
+        br(),
+        br(),
+        h4("Profile Image"),
+        uiOutput("userProfileImageTweet"),
+        # imageOutput(outputId = "userProfileImageTweetDummy", height = "10%"),
+        h4("User Name :"),
+        p(textOutput("userScreenNameTweet")),
+        h4("User Last Tweet : "),
+        p(textOutput("userLastTweet")),
     )
   ),
   column(width = 5,
-         h2(textOutput("sentimentTwitAccount")),
+         h3(textOutput("sentimentTwitAccount")),
          h3(textOutput("selectedGenreAccount")),
          withSpinner(dataTableOutput(outputId = "recommendationPlaylistTableAccount"))
   ),
